@@ -274,9 +274,12 @@ class DashboardController extends Controller
             }
         });
 
+        // Volume barang terjual tetap accrual (semua penjualan tahun ini).
         $totalItemsSold = (clone $rewardQuery)->sum('qty');
-        $rewardToko     = (clone $rewardQuery)->sum('reward_store');
-        $rewardOwner    = (clone $rewardQuery)->sum('reward_owner');
+        // Komisi: cash-basis (diakui saat lunas/settled) + net of return, via RewardService.
+        $rewardTotals = \App\Services\RewardService::yearTotals($storeId ?: null, $currentYear);
+        $rewardToko   = $rewardTotals['store_reward'];
+        $rewardOwner  = $rewardTotals['owner_reward'];
 
         // ── Additional Financial Calculations ────────────────
         $totalExpense = Expense::when($storeId, fn($q) => $q->where('store_id', $storeId))

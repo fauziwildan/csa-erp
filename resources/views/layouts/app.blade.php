@@ -1,9 +1,13 @@
 @php
     $isCashier = auth()->user()->hasRole('kasir');
+    $isStoreHead = auth()->user()->hasRole('kepala toko'); // kepala toko: tanpa sidebar, navigasi via menu modul di dashboard
     $isKiosk = request()->query('kiosk') == 1; // Deteksi jika ada ?kiosk=1 di URL
-    
+
     // Gabungkan kondisi sembunyikan navigasi
-    $hideNavigation = $isCashier || $isKiosk; 
+    $hideNavigation = $isCashier || $isKiosk || $isStoreHead;
+
+    // Sidebar default TERTUTUP di layar kasir/POS (biar lega), selain itu terbuka di desktop
+    $collapseSidebar = $isCashier || request()->routeIs('pos.index');
 @endphp
 
 <!DOCTYPE html>
@@ -13,17 +17,117 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') — SevenKey ERP</title>
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        /* ===== SevenKey premium theme (global shell) ===== */
+        body.app-shell{
+            font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+            background:
+                radial-gradient(58% 50% at 6% -6%,    rgba(124,130,255,.24), transparent 60%),
+                radial-gradient(54% 50% at 99% -2%,   rgba(130,172,255,.22), transparent 60%),
+                radial-gradient(68% 64% at 98% 106%,  rgba(165,150,255,.22), transparent 62%),
+                radial-gradient(68% 64% at -4% 104%,  rgba(150,180,255,.18), transparent 60%),
+                linear-gradient(180deg,#EEF1FF 0%,#E9ECFF 55%,#ECEAFF 100%);
+            background-attachment:fixed;
+        }
+        /* glass topbar */
+        .app-shell .topbar{
+            background:rgba(255,255,255,.55) !important;
+            backdrop-filter:blur(18px) saturate(150%); -webkit-backdrop-filter:blur(18px) saturate(150%);
+            border-bottom:1px solid rgba(255,255,255,.6) !important;
+            box-shadow:0 1px 0 rgba(255,255,255,.5), 0 10px 30px -20px rgba(60,70,120,.4) !important;
+        }
+        /* ===== glass sidebar (terang/transparan) ===== */
+        .sidebar-glass{
+            background:rgba(255,255,255,.58) !important;
+            backdrop-filter:blur(28px) saturate(160%); -webkit-backdrop-filter:blur(28px) saturate(160%);
+            border-right:1px solid rgba(255,255,255,.55);
+            box-shadow:0 24px 70px -34px rgba(60,70,120,.5);
+        }
+        .sidebar-glass .text-white{ color:#1F2937 !important; }
+        .sidebar-glass .text-gray-300{ color:#475467 !important; }
+        .sidebar-glass .text-gray-400{ color:#5B6576 !important; }
+        /* submenu (border-l) lebih jelas saat hover */
+        .sidebar-glass .hover\:text-white:hover{ color:#5B5EF6 !important; }
+        .sidebar-glass .bg-gray-950{ background:transparent !important; }
+        .sidebar-glass .bg-gray-800{ background:rgba(91,94,246,.10) !important; }
+        .sidebar-glass .border-gray-800,
+        .sidebar-glass .border-gray-700{ border-color:rgba(16,24,40,.08) !important; }
+        .sidebar-glass .hover\:bg-gray-800:hover{ background:rgba(91,94,246,.09) !important; }
+        .sidebar-glass .hover\:text-white:hover{ color:#5B5EF6 !important; }
+        /* active pill = gradient tema, teks putih */
+        .sidebar-glass a.bg-indigo-600,
+        .sidebar-glass button.bg-indigo-600{
+            background:linear-gradient(135deg,#5B5EF6,#7D82FF) !important;
+            color:#fff !important;
+            box-shadow:0 8px 18px -6px rgba(91,94,246,.5);
+        }
+        .sidebar-glass a.bg-indigo-600 *,
+        .sidebar-glass button.bg-indigo-600 *{ color:#fff !important; }
+        /* ikon 7K & avatar tetap aksen gradient */
+        .sidebar-glass .bg-indigo-500{ background:linear-gradient(135deg,#5B5EF6,#7D82FF) !important; color:#fff !important; }
+        /* halus: thumbnail scrollbar */
+        .app-shell ::-webkit-scrollbar{ width:10px; height:10px; }
+        .app-shell ::-webkit-scrollbar-thumb{ background:rgba(91,94,246,.22); border-radius:99px; border:3px solid transparent; background-clip:content-box; }
+        .app-shell ::-webkit-scrollbar-thumb:hover{ background:rgba(91,94,246,.4); background-clip:content-box; }
+
+        /* ================= DASHBOARD THEME (semua role: .dash wrapper) ================= */
+        .dash .bg-white{
+            background:linear-gradient(160deg, rgba(255,255,255,.78), rgba(255,255,255,.56)) !important;
+            backdrop-filter:blur(18px) saturate(140%); -webkit-backdrop-filter:blur(18px) saturate(140%);
+            border:1px solid rgba(255,255,255,.6) !important;
+            border-radius:22px !important;
+            box-shadow:0 1px 2px rgba(16,24,40,.04), 0 16px 34px -18px rgba(60,70,120,.20), inset 0 1px 0 rgba(255,255,255,.75) !important;
+            transition:transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease !important;
+        }
+        .dash a.bg-white:hover, .dash .bg-white.hover\:shadow-md:hover{
+            transform:translateY(-3px);
+            box-shadow:0 1px 2px rgba(16,24,40,.05), 0 26px 50px -20px rgba(60,70,120,.3), inset 0 1px 0 rgba(255,255,255,.8) !important;
+        }
+        .dash .bg-gradient-to-r.from-indigo-600{
+            background:linear-gradient(135deg, rgba(99,102,241,.82), rgba(134,142,255,.66)) !important;
+            backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
+            border:1px solid rgba(255,255,255,.4) !important;
+            border-radius:26px !important;
+            box-shadow:0 24px 50px -20px rgba(91,94,246,.45), inset 0 1px 0 rgba(255,255,255,.4) !important;
+        }
+        .dash .rounded-bl-lg{ backdrop-filter:blur(4px); }
+        [x-cloak]{ display:none !important; }
+        .dash .cashflow canvas{ max-width:100% !important; }
+        .dash .cashflow{ overflow:hidden; }
+        .dash .cashflow .donutcol{ transition:width .55s cubic-bezier(.22,1,.36,1); }
+        /* Statistik: kartu seragam */
+        .dash .statgrid > *{ min-height:112px; display:flex; flex-direction:column; justify-content:space-between; padding:1.05rem 1rem !important; }
+        .dash .statgrid svg{ display:none !important; }
+        .dash .statgrid .flex{ display:block !important; }
+        .dash .statgrid .rounded-bl-lg{ top:.6rem !important; right:.6rem !important; left:auto !important; bottom:auto !important; border-radius:999px !important; padding:.16rem .55rem !important; font-size:8.5px !important; letter-spacing:.04em !important; line-height:1.5 !important; box-shadow:0 1px 2px rgba(16,24,40,.06); }
+        .dash .statgrid .text-2xl, .dash .statgrid .text-xl{ font-size:1.5rem !important; line-height:1.15 !important; margin-top:.1rem !important; }
+        .dash .statgrid .text-lg{ font-size:1.15rem !important; line-height:1.2 !important; margin-top:.1rem !important; }
+        @media (max-width:639px){
+            .dash .cards-tight > *{ padding:0.85rem !important; border-radius:16px !important; }
+            .dash .cards-tight .text-3xl{ font-size:1.15rem !important; line-height:1.2 !important; }
+            .dash .cards-tight .text-xl{ font-size:1.05rem !important; line-height:1.2 !important; }
+            .dash .cards-tight .uppercase{ font-size:9.5px !important; letter-spacing:.02em !important; }
+            .dash .cards-tight .p-2{ display:none !important; }
+            .dash .cards-tight .w-24.h-24, .dash .cards-tight .w-16.h-16{ width:3.5rem !important; height:3.5rem !important; }
+            .dash .cards-tight .text-\[11px\]{ font-size:10px !important; }
+            .dash .statgrid > *{ min-height:96px; padding:.85rem !important; }
+            .dash .statgrid .text-2xl, .dash .statgrid .text-xl{ font-size:1.3rem !important; }
+            .dash .statgrid .text-lg{ font-size:1.02rem !important; }
+        }
+    </style>
     @stack('styles')
 </head>
-<body class="h-full font-sans antialiased bg-gray-50">
+<body class="h-full font-sans antialiased app-shell">
 
-<div class="flex h-full" x-data="{ sidebarOpen: {{ $isCashier ? 'false' : 'window.innerWidth >= 1024' }} }">
+<div class="flex h-full" x-data="{ sidebarOpen: {{ $collapseSidebar ? 'false' : 'window.innerWidth >= 1024' }} }">
 
     {{-- Sidebar --}}
     @if(!$hideNavigation)
     <aside
-        class="fixed inset-y-0 left-0 z-50 flex flex-col w-64 text-white transition-transform duration-300 ease-in-out bg-gray-900"
+        class="sidebar-glass fixed inset-y-0 left-0 z-50 flex flex-col w-64 transition-transform duration-300 ease-in-out"
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
         {{-- Logo --}}
@@ -140,7 +244,6 @@
                         ['route' => 'store.stock.index',    'label' => 'Stok Toko'],
                         ['route' => 'store.receiving.index','label' => 'Terima Kiriman'],
                         ['route' => 'store.opname.index',   'label' => 'Stock Opname'],
-                        ['route' => 'store.customers.index', 'label' => 'Data Pelanggan'],
                         ['route' => 'pos.history',          'label' => 'Riwayat Transaksi'],
                     ] as $item)
                     <a href="{{ route($item['route']) }}"
@@ -150,6 +253,30 @@
                     @endforeach
                 </div>
             </div>
+            @endcan
+
+            @can('view customers')
+            <a href="{{ route('customers.index') }}"
+                class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors {{ request()->routeIs('customers.*') ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 00-3-3.87"/></svg>
+                Pelanggan
+            </a>
+            @endcan
+
+            @can('approve credit')
+            @php
+                $pendingCredit = \App\Models\Sale::where('approval_status', 'pending')
+                    ->when(! auth()->user()->hasAnyRole(['owner', 'superadmin']), fn ($q) => $q->whereIn('store_id', auth()->user()->stores->pluck('id')))
+                    ->count();
+            @endphp
+            <a href="{{ route('credit-approvals.index') }}"
+                class="flex items-center justify-between gap-3 px-3 py-2 rounded-lg font-medium transition-colors {{ request()->routeIs('credit-approvals.*') ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                <span class="flex items-center gap-3">
+                    <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Persetujuan Kredit
+                </span>
+                @if($pendingCredit > 0)<span class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">{{ $pendingCredit }}</span>@endif
+            </a>
             @endcan
 
             @can('view transfer')
@@ -205,6 +332,14 @@
             </a>
             @endcan
 
+            @can('view settlement')
+            <a href="{{ route('settlements.index') }}"
+                class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors {{ request()->routeIs('settlements.*') ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                Settlement
+            </a>
+            @endcan
+
             @can('view finance')
             <a href="{{ route('finance.index') }}"
                 class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors {{ request()->routeIs('finance.*') ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
@@ -245,6 +380,14 @@
                     <a href="{{ route('admin.audit-logs.index') }}" class="block px-3 py-1.5 rounded-md text-xs {{ request()->routeIs('admin.audit-logs.*') ? 'bg-indigo-600 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">Audit Log</a>
                 </div>
             </div>
+            @endcan
+
+            @can('manage settings')
+            <a href="{{ route('settings.credit') }}"
+                class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors {{ request()->routeIs('settings.*') ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                Pengaturan
+            </a>
             @endcan
 
         </nav>
@@ -295,11 +438,20 @@
 >
 
         {{-- Topbar --}}
-        <header class="sticky top-0 z-30 flex items-center gap-4 px-4 bg-white border-b border-gray-200 shadow-sm h-14">
-            @if(!$isKiosk)
+        <header class="topbar sticky top-0 z-30 flex items-center gap-4 px-4 bg-white border-b border-gray-200 shadow-sm h-14">
+            @if(!$hideNavigation)
             <button @click="sidebarOpen = !sidebarOpen" class="p-1 text-gray-500 rounded hover:text-gray-900">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
             </button>
+            @endif
+
+            {{-- Tombol Home untuk yang tanpa sidebar (kepala toko): jalan balik ke menu/dashboard --}}
+            @if($hideNavigation && !$isCashier && !$isKiosk)
+            <a href="{{ route('dashboard') }}" title="Menu Utama"
+               class="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+                <span class="flex items-center justify-center w-7 h-7 text-[11px] font-extrabold text-white rounded-lg" style="background:linear-gradient(135deg,#5B5EF6,#7D82FF)">7K</span>
+                <span class="hidden sm:block text-sm font-bold text-gray-700">Menu</span>
+            </a>
             @endif
 
             <div class="flex-1 min-w-0">

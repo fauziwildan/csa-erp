@@ -58,6 +58,10 @@ class StoreReturnController extends Controller
         $user  = Auth::user();
         $store = $user->primaryStore();
 
+        if (!$store) {
+            return back()->withInput()->with('error', 'Anda belum ditugaskan ke toko manapun. Hubungi administrator.');
+        }
+
         $r->validate([
             'warehouse_id'          => 'required|exists:warehouses,id',
             'return_reason_id'      => 'nullable|exists:return_reasons,id',

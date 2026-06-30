@@ -53,17 +53,31 @@ class ExpenseController extends Controller
     public function store(Request $request)
     {
         $this->authorize('create expenses');
-        $request->validate([
+        $user = Auth::user();
+
+        $rules = [
             'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
             'expense_type' => 'required|string',
             'amount' => 'required|numeric|min:0',
             'expense_date' => 'required|date',
-            'receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', 
-            'source_type' => 'required_if:user_role,superadmin,owner|in:store,warehouse',
-            'source_id' => 'required_if:user_role,superadmin,owner',
-        ]);
+            'receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+        ];
 
-        $user = Auth::user();
+        // Hanya superadmin/owner yang memilih sumber lewat form; kepala toko & admin gudang
+        // sumbernya ditentukan otomatis dari penugasan, jadi tidak wajib diisi.
+        $picksSource = ! $user->hasRole('kepala toko') && ! $user->hasRole('admin gudang');
+        if ($picksSource) {
+            $rules['source_type'] = 'required|in:store,warehouse';
+            $rules['source_id'] = [
+                'required', 'integer',
+                \Illuminate\Validation\Rule::exists(
+                    $request->source_type === 'warehouse' ? 'warehouses' : 'stores', 'id'
+                ),
+            ];
+        }
+
+        $request->validate($rules);
         $data = $request->only(['title', 'description', 'expense_type', 'amount', 'expense_date']);
         $data['created_by'] = $user->id;
 
@@ -104,36 +118,46 @@ class ExpenseController extends Controller
     public function edit(Expense $expense)
     {
         $this->authorize('update expenses');
+        $this->authorizeExpenseScope($expense);
 
-        $stores = Store::all();
-        $warehouses = Warehouse::all();
+        $user = Auth::user();
+        $isAdmin = $user->hasAnyRole(['superadmin', 'owner']);
+        $stores = $isAdmin ? Store::all() : $user->stores()->get();
+        $warehouses = $isAdmin ? Warehouse::all() : $user->warehouses()->get();
         return view('expenses.edit', compact('expense', 'stores', 'warehouses'));
     }
 
     public function update(Request $request, Expense $expense)
     {
         $this->authorize('update expenses');
+        $this->authorizeExpenseScope($expense);
+        $user = Auth::user();
 
         $request->validate([
             'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
             'expense_type' => 'required|string',
             'amount' => 'required|numeric|min:0',
             'expense_date' => 'required|date',
-            'receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', 
-            'source_type' => 'required|in:store,warehouse',
-            'source_id' => 'required',
+            'receipt' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
         $data = $request->only(['title', 'description', 'expense_type', 'amount', 'expense_date']);
 
-        // Reset asal usul (karena mungkin dipindah dari toko ke gudang atau sebaliknya)
-        $data['store_id'] = null;
-        $data['warehouse_id'] = null;
-
-        if ($request->source_type === 'store') {
-            $data['store_id'] = $request->source_id;
-        } else {
-            $data['warehouse_id'] = $request->source_id;
+        // Hanya superadmin/owner yang boleh memindahkan sumber (toko/gudang).
+        // Kepala toko & admin gudang: sumber dipertahankan apa adanya.
+        if ($user->hasAnyRole(['superadmin', 'owner'])) {
+            $validated = $request->validate([
+                'source_type' => 'required|in:store,warehouse',
+                'source_id' => [
+                    'required', 'integer',
+                    \Illuminate\Validation\Rule::exists(
+                        $request->source_type === 'warehouse' ? 'warehouses' : 'stores', 'id'
+                    ),
+                ],
+            ]);
+            $data['store_id'] = $validated['source_type'] === 'store' ? $validated['source_id'] : null;
+            $data['warehouse_id'] = $validated['source_type'] === 'warehouse' ? $validated['source_id'] : null;
         }
 
         if ($request->hasFile('receipt')) {
@@ -151,6 +175,7 @@ class ExpenseController extends Controller
     public function destroy(Expense $expense)
     {
         $this->authorize('delete expenses');
+        $this->authorizeExpenseScope($expense);
 
         // Hapus file gambar dari storage
         if ($expense->receipt_path) {
@@ -159,5 +184,26 @@ class ExpenseController extends Controller
         
         $expense->delete();
         return redirect()->back()->with('success', 'Pengeluaran berhasil dihapus.');
+    }
+
+    /**
+     * Pastikan kepala toko / admin gudang hanya bisa mengelola pengeluaran
+     * dari toko / gudang yang ditugaskan padanya. Superadmin & owner bebas.
+     */
+    private function authorizeExpenseScope(Expense $expense): void
+    {
+        $user = Auth::user();
+        if ($user->hasAnyRole(['superadmin', 'owner'])) {
+            return;
+        }
+        if ($user->hasRole('kepala toko')) {
+            if (! $expense->store_id || ! $user->stores()->where('stores.id', $expense->store_id)->exists()) {
+                abort(403, 'Anda tidak berhak mengelola pengeluaran toko lain.');
+            }
+        } elseif ($user->hasRole('admin gudang')) {
+            if (! $expense->warehouse_id || ! $user->warehouses()->where('warehouses.id', $expense->warehouse_id)->exists()) {
+                abort(403, 'Anda tidak berhak mengelola pengeluaran gudang lain.');
+            }
+        }
     }
 }

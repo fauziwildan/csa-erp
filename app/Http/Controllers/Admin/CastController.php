@@ -11,8 +11,7 @@ class CastController extends Controller
     // Fungsi dipanggil saat Superadmin menekan angka '1'
     public function triggerCast(Request $request)
     {
-        // Tambahkan 'super admin' (pakai spasi) untuk mencegah error role mismatch
-        if (!auth()->user()->hasAnyRole(['superadmin', 'super admin', 'owner'])) {
+        if (!auth()->user()->hasAnyRole(['superadmin', 'owner'])) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 

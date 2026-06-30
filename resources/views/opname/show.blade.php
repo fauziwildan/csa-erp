@@ -76,6 +76,22 @@
                     <h2 class="text-sm font-semibold text-gray-700">Masukkan Hitungan Aktual</h2>
                     <p class="text-xs text-gray-400 mt-0.5">Isi kolom "Qty Aktual" sesuai hasil hitungan fisik. Selisih akan dihitung otomatis.</p>
                 </div>
+                <div class="px-5 py-3 border-b border-gray-100 bg-indigo-50/40">
+                    <label class="block text-xs font-medium text-gray-600 mb-1">➕ Tambah varian temuan
+                        <span class="font-normal text-gray-400">(mis. barang ada secara fisik tapi stok sistem 0)</span>
+                    </label>
+                    <div class="relative max-w-md">
+                        <input type="text" id="opname-add-search" autocomplete="off"
+                            placeholder="Cari SKU atau nama produk…"
+                            data-url="{{ route('api.variants.search') }}"
+                            data-loc-param="{{ $opname->location_type === 'warehouse' ? 'warehouse_id' : 'store_id' }}"
+                            data-loc-id="{{ $opname->location_id }}"
+                            data-is-store="{{ $opname->location_type === 'store' ? '1' : '0' }}"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <div id="opname-add-results"
+                            class="hidden absolute z-20 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-60 overflow-auto"></div>
+                    </div>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="bg-gray-50 border-b border-gray-100">
@@ -93,7 +109,7 @@
                                 <th class="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Selisih Harga</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody id="opname-items-body" class="divide-y divide-gray-100">
                             @foreach($opname->items as $i => $item)
                             @php 
                                 $v = $item->variant; 
@@ -292,84 +308,181 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const rows = document.querySelectorAll('.item-row');
+        const tbody = document.getElementById('opname-items-body');
         const totalDiffDisplay = document.getElementById('total-diff-display');
 
         function formatIDR(number) {
             return new Intl.NumberFormat('id-ID').format(number);
         }
 
+        function getRows() {
+            return tbody ? tbody.querySelectorAll('.item-row') : [];
+        }
+
         function updateCalculations() {
             let totalDiffPrice = 0;
 
-            rows.forEach(row => {
+            getRows().forEach(row => {
                 const qtyInput = row.querySelector('.qty-input');
+                if (!qtyInput) return;
                 const priceTypeSelect = row.querySelector('.price-type-select');
                 const unitPriceDisplay = row.querySelector('.actual-unit-price');
                 const sysTotalDisplay = row.querySelector('.actual-sys-total');
                 const actualDisplay = row.querySelector('.actual-price-display');
                 const diffDisplay = row.querySelector('.diff-price-display');
-                
+
                 const isEcer = priceTypeSelect ? (priceTypeSelect.value === '1') : false;
                 const sellPrice = parseFloat(row.getAttribute('data-sell-price')) || 0;
                 const retailPrice = parseFloat(row.getAttribute('data-retail-price')) || 0;
                 const price = isEcer ? retailPrice : sellPrice;
-                
+
                 const sysQty = parseInt(row.getAttribute('data-sys-qty')) || 0;
-                
+
                 if (unitPriceDisplay) unitPriceDisplay.textContent = formatIDR(price);
                 if (sysTotalDisplay) sysTotalDisplay.textContent = formatIDR(sysQty * price);
-                
+
                 if (qtyInput.value === '') {
-                    actualDisplay.textContent = '0';
-                    diffDisplay.textContent = 'Rp 0';
-                    diffDisplay.className = 'px-4 py-2 text-right text-xs font-bold diff-price-display text-gray-500';
+                    if (actualDisplay) actualDisplay.textContent = '0';
+                    if (diffDisplay) {
+                        diffDisplay.textContent = 'Rp 0';
+                        diffDisplay.className = 'px-4 py-2 text-right text-xs font-bold diff-price-display text-gray-500';
+                    }
                     return;
                 }
 
                 const actualQty = parseInt(qtyInput.value) || 0;
-                
                 const actualPrice = actualQty * price;
-                const diffQty = actualQty - sysQty;
-                const diffPrice = diffQty * price;
+                const diffPrice = (actualQty - sysQty) * price;
 
                 totalDiffPrice += diffPrice;
 
-                actualDisplay.textContent = formatIDR(actualPrice);
-                
-                const sign = diffPrice > 0 ? '+' : '';
-                diffDisplay.textContent = sign + 'Rp ' + formatIDR(diffPrice);
-                
-                if (diffPrice > 0) {
-                    diffDisplay.className = 'px-4 py-2 text-right text-xs font-bold diff-price-display text-green-600';
-                } else if (diffPrice < 0) {
-                    diffDisplay.className = 'px-4 py-2 text-right text-xs font-bold diff-price-display text-red-600';
-                } else {
-                    diffDisplay.className = 'px-4 py-2 text-right text-xs font-bold diff-price-display text-gray-500';
+                if (actualDisplay) actualDisplay.textContent = formatIDR(actualPrice);
+
+                if (diffDisplay) {
+                    const sign = diffPrice > 0 ? '+' : '';
+                    diffDisplay.textContent = sign + 'Rp ' + formatIDR(diffPrice);
+                    diffDisplay.className = 'px-4 py-2 text-right text-xs font-bold diff-price-display '
+                        + (diffPrice > 0 ? 'text-green-600' : diffPrice < 0 ? 'text-red-600' : 'text-gray-500');
                 }
             });
 
-            const totalSign = totalDiffPrice > 0 ? '+' : '';
-            totalDiffDisplay.textContent = totalSign + 'Rp ' + formatIDR(totalDiffPrice);
-            
-            if (totalDiffPrice > 0) {
-                totalDiffDisplay.className = 'px-4 py-3 text-right text-sm font-black text-green-600';
-            } else if (totalDiffPrice < 0) {
-                totalDiffDisplay.className = 'px-4 py-3 text-right text-sm font-black text-red-600';
-            } else {
-                totalDiffDisplay.className = 'px-4 py-3 text-right text-sm font-black text-gray-800';
+            if (totalDiffDisplay) {
+                const totalSign = totalDiffPrice > 0 ? '+' : '';
+                totalDiffDisplay.textContent = totalSign + 'Rp ' + formatIDR(totalDiffPrice);
+                totalDiffDisplay.className = 'px-4 py-3 text-right text-sm font-black '
+                    + (totalDiffPrice > 0 ? 'text-green-600' : totalDiffPrice < 0 ? 'text-red-600' : 'text-gray-800');
             }
         }
 
-        rows.forEach(row => {
-            const qtyInput = row.querySelector('.qty-input');
-            const priceTypeSelect = row.querySelector('.price-type-select');
-            
-            if (qtyInput) qtyInput.addEventListener('input', updateCalculations);
-            if (priceTypeSelect) priceTypeSelect.addEventListener('change', updateCalculations);
-        });
+        // Event delegation supaya baris yang ditambah dinamis ikut dihitung
+        if (tbody) {
+            tbody.addEventListener('input', e => { if (e.target.classList.contains('qty-input')) updateCalculations(); });
+            tbody.addEventListener('change', e => { if (e.target.classList.contains('price-type-select')) updateCalculations(); });
+        }
 
-        // Initial calculation if there are old values
+        // ---- Tambah varian temuan (varian yang tidak ada di snapshot) ----
+        const searchInput = document.getElementById('opname-add-search');
+        const resultsBox = document.getElementById('opname-add-results');
+        let newIdx = 0, timer = null;
+
+        function makeTd(cls) { const c = document.createElement('td'); c.className = cls; return c; }
+
+        function addRow(r) {
+            const idx = newIdx++;
+            const isStore = searchInput.dataset.isStore === '1';
+            const price = parseFloat(r.price) || 0;
+            const stock = parseInt(r.stock) || 0;
+
+            const tr = document.createElement('tr');
+            tr.className = 'item-row bg-yellow-50';
+            tr.dataset.sellPrice = price;
+            tr.dataset.retailPrice = price;
+            tr.dataset.sysQty = stock;
+
+            const tdSku = makeTd('px-4 py-2 font-mono text-xs text-gray-700'); tdSku.textContent = r.sku; tr.appendChild(tdSku);
+            const tdName = makeTd('px-4 py-2 text-xs text-gray-700'); tdName.textContent = r.name; tr.appendChild(tdName);
+
+            if (isStore) {
+                const tdType = makeTd('px-4 py-2 text-xs');
+                const sel = document.createElement('select');
+                sel.name = `new_items[${idx}][is_ecer]`;
+                sel.className = 'price-type-select text-xs border border-gray-300 rounded px-2 py-1 w-20 bg-gray-50 text-gray-700 focus:outline-none focus:ring-1 focus:ring-indigo-500';
+                sel.innerHTML = '<option value="0">Grosir</option><option value="1">Ecer</option>';
+                tdType.appendChild(sel); tr.appendChild(tdType);
+            }
+
+            const tdUnit = makeTd('px-4 py-2 text-right text-xs text-gray-600');
+            tdUnit.innerHTML = 'Rp <span class="format-price actual-unit-price"></span>';
+            tdUnit.querySelector('span').textContent = formatIDR(price);
+            tr.appendChild(tdUnit);
+
+            const tdSys = makeTd('px-4 py-2 text-right text-xs font-semibold text-gray-700'); tdSys.textContent = stock; tr.appendChild(tdSys);
+
+            const tdSysTotal = makeTd('px-4 py-2 text-right text-xs text-gray-600 font-semibold');
+            tdSysTotal.innerHTML = 'Rp <span class="format-price actual-sys-total"></span>';
+            tdSysTotal.querySelector('span').textContent = formatIDR(stock * price);
+            tr.appendChild(tdSysTotal);
+
+            const tdQty = makeTd('px-4 py-2 text-right');
+            const inp = document.createElement('input');
+            inp.type = 'number'; inp.min = '0'; inp.required = true;
+            inp.name = `new_items[${idx}][qty_actual]`;
+            inp.className = 'qty-input w-20 border border-gray-300 rounded-lg px-2 py-1 text-sm text-right focus:outline-none focus:ring-2 focus:ring-indigo-500';
+            const hid = document.createElement('input');
+            hid.type = 'hidden'; hid.name = `new_items[${idx}][variant_id]`; hid.value = r.id;
+            tdQty.appendChild(inp); tdQty.appendChild(hid); tr.appendChild(tdQty);
+
+            const tdActual = makeTd('px-4 py-2 text-right text-xs font-medium text-gray-700');
+            tdActual.innerHTML = 'Rp <span class="actual-price-display">0</span>'; tr.appendChild(tdActual);
+
+            const tdDiff = makeTd('px-4 py-2 text-right text-xs font-bold diff-price-display text-gray-500');
+            tdDiff.textContent = 'Rp 0'; tr.appendChild(tdDiff);
+
+            tbody.appendChild(tr);
+            inp.focus();
+            updateCalculations();
+        }
+
+        function renderResults(list) {
+            resultsBox.innerHTML = '';
+            if (!list.length) { resultsBox.classList.add('hidden'); return; }
+            list.forEach(r => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'block w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 border-b border-gray-50';
+                const s1 = document.createElement('span'); s1.className = 'font-mono text-gray-700'; s1.textContent = r.sku;
+                const s2 = document.createElement('span'); s2.className = 'text-gray-500'; s2.textContent = ' · ' + r.name;
+                const s3 = document.createElement('span'); s3.className = 'text-gray-400'; s3.textContent = ' (stok: ' + (r.stock ?? 0) + ')';
+                btn.append(s1, s2, s3);
+                btn.addEventListener('click', () => {
+                    addRow(r);
+                    searchInput.value = '';
+                    resultsBox.classList.add('hidden');
+                });
+                resultsBox.appendChild(btn);
+            });
+            resultsBox.classList.remove('hidden');
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', () => {
+                clearTimeout(timer);
+                const q = searchInput.value.trim();
+                if (q.length < 1) { resultsBox.classList.add('hidden'); return; }
+                timer = setTimeout(() => {
+                    const params = new URLSearchParams({ q });
+                    params.set(searchInput.dataset.locParam, searchInput.dataset.locId);
+                    fetch(searchInput.dataset.url + '?' + params.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(res => res.json())
+                        .then(data => renderResults(Array.isArray(data) ? data : []))
+                        .catch(() => resultsBox.classList.add('hidden'));
+                }, 300);
+            });
+            document.addEventListener('click', e => {
+                if (!resultsBox.contains(e.target) && e.target !== searchInput) resultsBox.classList.add('hidden');
+            });
+        }
+
         updateCalculations();
     });
 </script>

@@ -87,6 +87,22 @@ class ReceivingController extends Controller
                         $shipment->id
                     );
                 }
+
+                // Selisih yang tidak diterima toko dikembalikan ke stok gudang asal
+                // (stok sudah dikurangi penuh sebesar qty_sent saat status 'shipped').
+                $shortfall = $item->qty_sent - $qtyReceived;
+                if ($shortfall > 0) {
+                    StockService::mutate(
+                        $item->variant,
+                        'warehouse',
+                        $shipment->warehouse_id,
+                        $shortfall,
+                        'transfer_in',
+                        "Selisih pengiriman {$shipment->shipment_no} dikembalikan ke gudang",
+                        Shipment::class,
+                        $shipment->id
+                    );
+                }
             }
 
             $shipment->update([

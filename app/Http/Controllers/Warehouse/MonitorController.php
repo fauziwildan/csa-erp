@@ -27,7 +27,7 @@ class MonitorController extends Controller
 
         // Active shipments (dari proses awal sampai tiba)
         $inTransit = Shipment::with(['store', 'warehouse'])
-            ->whereIn('status', ['preparing', 'packed', 'shipped', 'arrived'])
+            ->whereIn('status', ['prepared', 'packed', 'shipped', 'arrived'])
             ->latest('updated_at')
             ->get();
 

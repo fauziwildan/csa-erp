@@ -73,6 +73,6 @@ class User extends Authenticatable
 
     public function hasGlobalFinanceAccess(): bool
     {
-        return $this->hasAnyRole(['superadmin', 'super admin', 'owner', 'finance']);
+        return $this->hasAnyRole(['superadmin', 'owner', 'finance']);
     }
 }

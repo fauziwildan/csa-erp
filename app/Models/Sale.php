@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Sale extends Model
 {
     protected $fillable = [
-        'sale_no', 'cash_session_id', 'store_id', 'payment_method_id',
+        'sale_no', 'cash_session_id', 'store_id', 'customer_id', 'payment_method_id',
         'subtotal', 'discount_amount', 'total_amount',
         'amount_paid', 'change_amount', 'notes', 'created_by',
         'customer_name', 'customer_phone',
         'price_method', 'payment_status', 'dp_amount', 'due_date',
+        'approval_status', 'approved_by', 'approved_at', 'settled_at',
     ];
 
     protected $casts = [
@@ -24,11 +25,22 @@ class Sale extends Model
         'change_amount'   => 'decimal:2',
         'dp_amount'       => 'decimal:2',
         'due_date'        => 'date',
+        'approved_at'     => 'datetime',
+        'settled_at'      => 'datetime',
     ];
 
     public function cashSession(): BelongsTo   { return $this->belongsTo(CashSession::class); }
     public function store(): BelongsTo         { return $this->belongsTo(Store::class); }
+    public function customer(): BelongsTo      { return $this->belongsTo(Customer::class); }
     public function paymentMethod(): BelongsTo { return $this->belongsTo(PaymentMethod::class); }
     public function creator(): BelongsTo       { return $this->belongsTo(User::class, 'created_by'); }
+    public function approver(): BelongsTo      { return $this->belongsTo(User::class, 'approved_by'); }
     public function items(): HasMany           { return $this->hasMany(SaleItem::class); }
+    public function payments(): HasMany        { return $this->hasMany(SalePayment::class); }
+
+    /** Sisa utang nota ini (total − sudah dibayar), tidak negatif. */
+    public function remainingDue(): float
+    {
+        return max(0, (float) $this->total_amount - (float) $this->amount_paid);
+    }
 }

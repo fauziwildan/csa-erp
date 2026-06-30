@@ -294,14 +294,24 @@
 
                 <form id="posForm" method="POST" action="{{ route('pos.sale') }}" @submit.prevent="submitSale($event)">
                     @csrf
-                    <input type="hidden" name="payment_method_id" :value="paymentMethodId">
-                    <input type="hidden" name="amount_paid" :value="rawAmountPaid">
+                    <input type="hidden" name="payment_method_id" :value="primaryMethodId">
+                    <input type="hidden" name="amount_paid" :value="effectiveAmountPaid">
                     <input type="hidden" name="discount_amount" :value="rawDiscountAmount">
                     <input type="hidden" name="customer_name" :value="customerName">
                     <input type="hidden" name="customer_phone" :value="customerPhone">
                     <input type="hidden" name="payment_status" :value="paymentStatus">
-                    <input type="hidden" name="dp_amount" :value="rawAmountPaid">
+                    <input type="hidden" name="dp_amount" :value="effectiveAmountPaid">
                     <input type="hidden" name="due_date" :value="dueDate">
+                    <template x-if="splitMode">
+                        <span>
+                            <template x-for="(p, pi) in splitPayments" :key="pi">
+                                <span>
+                                    <input type="hidden" :name="`payments[${pi}][payment_method_id]`" :value="p.payment_method_id">
+                                    <input type="hidden" :name="`payments[${pi}][amount]`" :value="Number((p.amount || '').toString().replace(/\D/g, '')) || 0">
+                                </span>
+                            </template>
+                        </span>
+                    </template>
                     <template x-for="(item, i) in cart" :key="i">
                         <span>
                             <input type="hidden" :name="`items[${i}][variant_id]`" :value="item.variant_id">
@@ -375,14 +385,48 @@
                             <div class="flex-1 text-right">
                                 <label class="text-[9px] text-gray-500 font-bold uppercase tracking-wider block mb-1" x-text="['tempo', 'dp', 'po'].includes(paymentStatus) ? 'SISA HUTANG' : 'KEMBALIAN'"></label>
                                 <div class="text-lg font-black" :class="['tempo', 'dp', 'po'].includes(paymentStatus) ? 'text-red-500' : (change >= 0 ? 'text-green-600' : 'text-red-500')"
-                                    x-text="['tempo', 'dp', 'po'].includes(paymentStatus) ? 'Rp ' + Math.max(0, total - rawAmountPaid).toLocaleString('id-ID') : 'Rp ' + Math.max(0, change).toLocaleString('id-ID')"></div>
+                                    x-text="['tempo', 'dp', 'po'].includes(paymentStatus) ? 'Rp ' + Math.max(0, total - effectiveAmountPaid).toLocaleString('id-ID') : 'Rp ' + Math.max(0, change).toLocaleString('id-ID')"></div>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Toggle Split Metode -->
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="text-[9px] text-gray-500 font-bold uppercase tracking-wider">Metode Pembayaran</label>
+                        <button type="button" @click="splitMode = !splitMode"
+                            class="text-[10px] font-bold px-2.5 py-1 rounded-lg transition-colors"
+                            :class="splitMode ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'">
+                            <span x-text="splitMode ? '✓ Split metode AKTIF' : '+ Split metode'"></span>
+                        </button>
+                    </div>
+
+                    <!-- Repeater Split (multi-metode) -->
+                    <div x-show="splitMode" class="bg-white rounded-2xl p-3 mb-2 border border-gray-200 shadow-sm space-y-2" style="display:none;">
+                        <template x-for="(p, pi) in splitPayments" :key="pi">
+                            <div class="flex gap-2 items-center">
+                                <select x-model="p.payment_method_id"
+                                    class="w-2/5 bg-white border border-gray-300 text-gray-800 text-[11px] font-bold rounded-lg px-2 py-2 outline-none">
+                                    <option value="" disabled>Metode</option>
+                                    @foreach($paymentMethods as $pm)
+                                        <option value="{{ $pm->id }}">{{ strtoupper($pm->name) }}</option>
+                                    @endforeach
+                                </select>
+                                <input type="text" inputmode="numeric" x-model="p.amount" placeholder="Jumlah"
+                                    class="input-currency flex-1 bg-gray-50 border border-gray-200 rounded-lg px-2 py-2 text-sm font-bold text-gray-900 outline-none">
+                                <button type="button" @click="removeSplitRow(pi)" class="text-red-400 hover:text-red-600 text-sm px-1">✕</button>
+                            </div>
+                        </template>
+                        <div class="flex items-center justify-between pt-1">
+                            <button type="button" @click="addSplitRow()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800">+ Tambah metode</button>
+                            <span class="text-[11px] font-bold" :class="splitTotalPaid === total ? 'text-green-600' : 'text-gray-500'">
+                                Dialokasikan: Rp <span x-text="splitTotalPaid.toLocaleString('id-ID')"></span> / Rp <span x-text="total.toLocaleString('id-ID')"></span>
+                            </span>
                         </div>
                     </div>
 
                     <!-- Metode Bayar & Tombol BAYAR -->
                     <div class="flex gap-2">
-                        <select x-model="paymentMethodId" required
+                        <select x-show="!splitMode" x-model="paymentMethodId"
                             class="w-1/3 bg-white border border-gray-300 text-gray-800 text-[11px] font-bold rounded-xl px-2 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none cursor-pointer appearance-none text-center shadow-sm">
                             <option value="" disabled>Pilih Metode</option>
                             @foreach($paymentMethods as $pm)
@@ -391,7 +435,7 @@
                         </select>
 
                         <button type="submit"
-                            :disabled="cart.length === 0 || !paymentMethodId || (paymentStatus === 'lunas' && rawAmountPaid < total) || (['tempo', 'dp', 'po'].includes(paymentStatus) && !dueDate) || processing"
+                            :disabled="cart.length === 0 || (!splitMode && !paymentMethodId) || (splitMode && splitTotalPaid <= 0) || (paymentStatus === 'lunas' && effectiveAmountPaid < total) || (['tempo', 'dp', 'po'].includes(paymentStatus) && !dueDate) || processing"
                             class="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed text-white font-black py-3 rounded-xl text-base shadow-md hover:shadow-indigo-500/30 transition-all active:scale-95 flex items-center justify-center gap-2">
                             <svg x-show="!processing" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <svg x-show="processing" class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
@@ -604,6 +648,8 @@
                 customerPhone: '',
                 paymentStatus: 'lunas', // 'lunas' | 'tempo' | 'dp' | 'po'
                 dueDate: '',
+                splitMode: false,
+                splitPayments: [{ payment_method_id: '', amount: '' }],
 
                 init() {
                     // Watch total: Jika total berubah dan metode bukan Cash, update amountPaid
@@ -691,7 +737,13 @@
                 get rawDiscountAmount() { return Number(this.discountAmount.toString().replace(/\D/g, '')) || 0; },
                 get subtotal() { return this.cart.reduce((sum, item) => sum + (item.price * item.qty), 0); },
                 get total() { return Math.max(0, this.subtotal - this.rawDiscountAmount); },
-                get change() { return this.rawAmountPaid - this.total; },
+                // Multi-payment (split metode)
+                get splitTotalPaid() { return this.splitPayments.reduce((s, p) => s + (Number((p.amount || '').toString().replace(/\D/g, '')) || 0), 0); },
+                get effectiveAmountPaid() { return this.splitMode ? this.splitTotalPaid : this.rawAmountPaid; },
+                get primaryMethodId() { return this.splitMode ? (this.splitPayments[0]?.payment_method_id || '') : this.paymentMethodId; },
+                addSplitRow() { this.splitPayments.push({ payment_method_id: '', amount: '' }); },
+                removeSplitRow(i) { this.splitPayments.splice(i, 1); if (this.splitPayments.length === 0) this.splitPayments.push({ payment_method_id: '', amount: '' }); },
+                get change() { return this.effectiveAmountPaid - this.total; },
 
                 isCashSelected() {
                     let select = document.querySelector('select[x-model="paymentMethodId"]');
@@ -797,8 +849,10 @@
                 },
 
                 async submitSale(e) {
-                    if (this.cart.length === 0 || !this.paymentMethodId) return;
-                    if (this.paymentStatus === 'lunas' && this.rawAmountPaid < this.total) return;
+                    if (this.cart.length === 0) return;
+                    if (!this.splitMode && !this.paymentMethodId) return;
+                    if (this.splitMode && this.splitTotalPaid <= 0) return;
+                    if (this.paymentStatus === 'lunas' && this.effectiveAmountPaid < this.total) return;
                     if (['tempo', 'dp', 'po'].includes(this.paymentStatus) && !this.dueDate) return;
                     this.processing = true;
 
@@ -834,6 +888,8 @@
                             this.customerPhone = '';
                             this.paymentStatus = 'lunas';
                             this.dueDate = '';
+                            this.splitMode = false;
+                            this.splitPayments = [{ payment_method_id: '', amount: '' }];
                         } else {
                             alert('Gagal: ' + data.error);
                         }

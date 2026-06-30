@@ -105,20 +105,54 @@ class StockOpnameController extends Controller
         }
 
         $r->validate([
-            'items'              => 'required|array',
-            'items.*.id'         => 'required|exists:stock_opname_items,id',
-            'items.*.qty_actual' => 'required|integer|min:0',
-            'items.*.is_ecer'    => 'nullable|boolean',
+            'items'                    => 'nullable|array',
+            'items.*.id'               => 'required|exists:stock_opname_items,id',
+            'items.*.qty_actual'       => 'required|integer|min:0',
+            'items.*.is_ecer'          => 'nullable|boolean',
+            // Varian temuan yang tidak ada di snapshot (mis. stok sistem 0)
+            'new_items'                => 'nullable|array',
+            'new_items.*.variant_id'   => 'required|exists:product_variants,id',
+            'new_items.*.qty_actual'   => 'required|integer|min:0',
+            'new_items.*.is_ecer'      => 'nullable|boolean',
         ]);
 
+        if (empty($r->items) && empty($r->new_items)) {
+            return back()->with('error', 'Tidak ada item untuk disubmit. Tambahkan minimal satu varian.');
+        }
+
         DB::transaction(function () use ($r, $opname) {
-            foreach ($r->items as $row) {
+            foreach ($r->items ?? [] as $row) {
                 $item       = StockOpnameItem::findOrFail($row['id']);
                 $qtyActual  = (int) $row['qty_actual'];
                 $item->update([
                     'qty_actual'     => $qtyActual,
                     'qty_difference' => $qtyActual - $item->qty_system,
                     'is_ecer'        => isset($row['is_ecer']) ? filter_var($row['is_ecer'], FILTER_VALIDATE_BOOLEAN) : false,
+                ]);
+            }
+
+            // Tambahkan varian temuan baru — qty_system diambil dari stok terkini lokasi ini.
+            foreach ($r->new_items ?? [] as $row) {
+                $variantId = (int) $row['variant_id'];
+
+                // Lewati jika varian sudah ada di opname ini (hindari duplikat)
+                if ($opname->items()->where('product_variant_id', $variantId)->exists()) {
+                    continue;
+                }
+
+                $sysQty = Stock::where('product_variant_id', $variantId)
+                    ->where('location_type', $opname->location_type)
+                    ->where('location_id', $opname->location_id)
+                    ->value('qty') ?? 0;
+
+                $qtyActual = (int) $row['qty_actual'];
+                StockOpnameItem::create([
+                    'stock_opname_id'    => $opname->id,
+                    'product_variant_id' => $variantId,
+                    'qty_system'         => $sysQty,
+                    'qty_actual'         => $qtyActual,
+                    'qty_difference'     => $qtyActual - $sysQty,
+                    'is_ecer'            => isset($row['is_ecer']) ? filter_var($row['is_ecer'], FILTER_VALIDATE_BOOLEAN) : false,
                 ]);
             }
 

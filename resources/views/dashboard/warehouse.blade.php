@@ -3,7 +3,8 @@
 @section('page-title', 'Operasional Gudang')
 
 @section('content')
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="dash">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 cards-tight">
     {{-- Card Pengeluaran Hari Ini --}}
     <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm group relative overflow-hidden transition-all hover:shadow-md">
         <div class="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
@@ -180,4 +181,5 @@
 </table>
         </div>
     </div>
+</div>
 @endsection

@@ -3,7 +3,7 @@
 @section('page-title', 'Ringkasan Keuangan')
 
 @section('content')
-<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="dash grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
         <p class="text-gray-500 font-bold text-xs uppercase tracking-widest">Estimasi Omzet ({{ now()->format('F Y') }})</p>
         <h2 class="text-4xl font-black text-indigo-600 mt-2">Rp {{ number_format($monthSales ?? 0) }}</h2>

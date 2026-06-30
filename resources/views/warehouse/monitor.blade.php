@@ -132,7 +132,7 @@
                                     <p
                                         style="font-family: monospace; font-size: 0.75vw; font-weight: 800; color: #334155; text-transform: uppercase; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                                         {{ $v?->product?->name ?? '—' }}</p>
-                                    <p style="font-size: 0.65vw; color: #94a3b8; margin: 0.2vh 0 0 0;">{{ $v??->sku }}</p>
+                                    <p style="font-size: 0.65vw; color: #94a3b8; margin: 0.2vh 0 0 0;">{{ $v?->sku }}</p>
                                 </div>
                                 <span
                                     style="font-size: 1vw; font-weight: 900; color: {{ $stock->qty === 0 ? '#dc2626' : '#f59e0b' }}; margin-left: 1vw;">{{ $stock->qty }}</span>

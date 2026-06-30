@@ -3,6 +3,7 @@
 @section('page-title', 'Performa Toko Hari Ini')
 
 @section('content')
+<div class="dash">
 <div class="space-y-6">
     <div class="mb-4">
         <h3 class="text-lg font-bold text-gray-800 border-l-4 border-indigo-500 pl-3 uppercase tracking-tight">Ringkasan Finansial Toko Hari Ini</h3>
@@ -74,7 +75,7 @@
                         </p>
                     </div>
                     <div class="shrink-0 text-right">
-                        <a href="{{ route('store.customers.show', ['name' => $sale->customer_name, 'phone' => $sale->customer_phone]) }}" class="inline-flex items-center gap-1 bg-gray-900 text-white hover:bg-gray-800 text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
+                        <a href="{{ route('store.customers.show', ['name' => $sale->customer_name, 'phone' => $sale->customer_phone]) }}" class="inline-flex items-center gap-1 bg-indigo-600 text-white hover:bg-indigo-700 text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
                             <span>Detail</span>
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -89,7 +90,7 @@
     @endif
 
     {{-- Daily Financial Cards --}}
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 cards-tight">
         {{-- Card Pemasukan Hari Ini --}}
         <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm group relative overflow-hidden transition-all hover:shadow-md">
             <div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
@@ -136,6 +137,42 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
                 </div>
             </div>
+        </div>
+    </div>
+
+    {{-- ============ MENU MODUL (navigasi kepala toko, pengganti sidebar) ============ --}}
+    <div>
+        <h3 class="text-lg font-bold text-gray-800 border-l-4 border-indigo-500 pl-3 mb-3">Menu</h3>
+        @php
+            $modules = [
+                ['can'=>'access pos','route'=>'pos.index','label'=>'Kasir / POS','color'=>'bg-indigo-100 text-indigo-700','icon'=>'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z'],
+                ['can'=>'view catalog','route'=>'catalog.index','label'=>'Katalog','color'=>'bg-blue-100 text-blue-700','icon'=>'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
+                ['can'=>'view store','route'=>'store.stock.index','label'=>'Stok Toko','color'=>'bg-emerald-100 text-emerald-700','icon'=>'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'],
+                ['can'=>'receive store shipment','route'=>'store.receiving.index','label'=>'Terima Kiriman','color'=>'bg-cyan-100 text-cyan-700','icon'=>'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-3.5l-1 2h-7l-1-2H4'],
+                ['can'=>'view stock opname','route'=>'store.opname.index','label'=>'Stock Opname','color'=>'bg-amber-100 text-amber-700','icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
+                ['can'=>'view customers','route'=>'customers.index','label'=>'Pelanggan','color'=>'bg-purple-100 text-purple-700','icon'=>'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 00-3-3.87'],
+                ['can'=>'approve credit','route'=>'credit-approvals.index','label'=>'Persetujuan Kredit','color'=>'bg-rose-100 text-rose-700','icon'=>'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
+                ['can'=>'view transfer','route'=>'transfers.index','label'=>'Transfer Toko','color'=>'bg-orange-100 text-orange-700','icon'=>'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'],
+                ['can'=>'view customer return','route'=>'returns.customer.index','label'=>'Retur','color'=>'bg-red-100 text-red-700','icon'=>'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6'],
+                ['can'=>'view settlement','route'=>'settlements.index','label'=>'Settlement','color'=>'bg-teal-100 text-teal-700','icon'=>'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
+                ['can'=>'view report','route'=>'reports.index','label'=>'Laporan','color'=>'bg-yellow-100 text-yellow-700','icon'=>'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+                ['can'=>'view expenses','route'=>'expenses.index','label'=>'Pengeluaran','color'=>'bg-pink-100 text-pink-700','icon'=>'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
+                ['can'=>'print product label','route'=>'labels.picker','label'=>'Cetak Label','color'=>'bg-slate-100 text-slate-700','icon'=>'M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a1 1 0 001-1v-4a1 1 0 00-1-1H9a1 1 0 00-1 1v4a1 1 0 001 1zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h14z'],
+                ['can'=>'view product','route'=>'products.index','label'=>'Produk & SKU','color'=>'bg-violet-100 text-violet-700','icon'=>'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
+                ['can'=>'view pos','route'=>'pos.history','label'=>'Riwayat Transaksi','color'=>'bg-gray-100 text-gray-700','icon'=>'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
+            ];
+        @endphp
+        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+            @foreach($modules as $m)
+                @can($m['can'])
+                <a href="{{ route($m['route']) }}" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center gap-2.5 text-center hover:-translate-y-1 hover:shadow-md transition-all group">
+                    <span class="w-11 h-11 rounded-xl {{ $m['color'] }} flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $m['icon'] }}"/></svg>
+                    </span>
+                    <span class="text-[11px] font-semibold text-gray-700 leading-tight">{{ $m['label'] }}</span>
+                </a>
+                @endcan
+            @endforeach
         </div>
     </div>
 
@@ -292,4 +329,5 @@
 </table>
         </div>
     </div>
+</div>
 @endsection

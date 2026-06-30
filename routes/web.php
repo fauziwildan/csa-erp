@@ -14,18 +14,10 @@ use App\Http\Controllers\Master\SizeController;
 use App\Http\Controllers\Master\StoreController;
 use App\Http\Controllers\Master\WarehouseController;
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Export\TestingExportController;
 use Illuminate\Support\Facades\Route;
 
 // Root
 Route::get('/', fn() => redirect()->route('dashboard'));
-
-Route::get('/link', function () {
-    $targetFolder = base_path() . '/storage/app/public';
-    $linkFolder = $_SERVER['DOCUMENT_ROOT'] . '/storage';
-    symlink($targetFolder, $linkFolder);
-    echo 'Success';
-});
 
 // Authenticated routes
 Route::middleware(['auth', 'active.user'])->group(function () {
@@ -196,6 +188,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::get('/stock-value', [App\Http\Controllers\Finance\FinanceController::class, 'stockValue'])->name('stock-value');
         Route::get('/sales', [App\Http\Controllers\Finance\FinanceController::class, 'sales'])->name('sales');
         Route::get('/rewards', [App\Http\Controllers\Finance\FinanceController::class, 'rewards'])->name('rewards');
+        Route::post('/bonus/pay', [App\Http\Controllers\Finance\FinanceController::class, 'payBonus'])->name('bonus.pay');
         Route::get('/export', [App\Http\Controllers\Finance\FinanceController::class, 'export'])->name('export');
     });
 
@@ -207,7 +200,6 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::get('/sales/{sale}/detail', [App\Http\Controllers\Report\ReportController::class, 'saleDetail'])->name('sale-detail');
         Route::get('/shipment', [App\Http\Controllers\Report\ReportController::class, 'shipment'])->name('shipment');
         Route::get('/transfer', [App\Http\Controllers\Report\ReportController::class, 'transfer'])->name('transfer');
-        Route::get('/rewards', [App\Http\Controllers\Report\ReportController::class, 'rewards'])->name('rewards');
         Route::get('/inbound', [App\Http\Controllers\Report\ReportController::class, 'inbound'])->name('inbound');
         Route::get('/return', [App\Http\Controllers\Report\ReportController::class, 'return'])->name('return');
         Route::get('/export-pdf', [App\Http\Controllers\Report\ReportController::class, 'exportPdf'])->name('export-pdf');
@@ -243,6 +235,36 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::get('/{variant}', [App\Http\Controllers\Label\LabelController::class, 'single'])->name('single');
     });
 
+    // Customers (manajemen pelanggan + kredit)
+    Route::post('customers/{customer}/loyalty', [App\Http\Controllers\Customer\CustomerController::class, 'loyalty'])->name('customers.loyalty');
+    Route::resource('customers', App\Http\Controllers\Customer\CustomerController::class);
+
+    // Pelunasan / pembayaran nota kredit
+    Route::middleware('can:record payment')->group(function () {
+        Route::get('/sales/{sale}/payments/create', [App\Http\Controllers\Sale\SalePaymentController::class, 'create'])->name('sales.payments.create');
+        Route::post('/sales/{sale}/payments', [App\Http\Controllers\Sale\SalePaymentController::class, 'store'])->name('sales.payments.store');
+    });
+
+    // Settlement Toko → Owner
+    Route::middleware('can:view settlement')->prefix('settlements')->name('settlements.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Finance\SettlementController::class, 'index'])->name('index');
+        Route::get('/{store}', [App\Http\Controllers\Finance\SettlementController::class, 'show'])->name('show');
+        Route::post('/{store}', [App\Http\Controllers\Finance\SettlementController::class, 'store'])->middleware('can:manage settlement')->name('store');
+    });
+
+    // Persetujuan kredit (transaksi tempo yang melebihi batas, mode approval)
+    Route::middleware('can:approve credit')->prefix('credit-approvals')->name('credit-approvals.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Finance\CreditApprovalController::class, 'index'])->name('index');
+        Route::post('/{sale}/approve', [App\Http\Controllers\Finance\CreditApprovalController::class, 'approve'])->name('approve');
+        Route::post('/{sale}/reject', [App\Http\Controllers\Finance\CreditApprovalController::class, 'reject'])->name('reject');
+    });
+
+    // Settings (kredit global, dll)
+    Route::middleware('can:manage settings')->prefix('settings')->name('settings.')->group(function () {
+        Route::get('/credit', [App\Http\Controllers\SettingController::class, 'credit'])->name('credit');
+        Route::put('/credit', [App\Http\Controllers\SettingController::class, 'updateCredit'])->name('credit.update');
+    });
+
     // Administration
     Route::prefix('admin')->name('admin.')->middleware('can:manage users')->group(function () {
         Route::resource('users', UserController::class)->except(['show']);
@@ -260,17 +282,6 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::get('/cast/check', [App\Http\Controllers\Admin\CastController::class, 'checkCast'])->name('cast.check');
     });
 
-});
-
-// ─────────────────────────────────────────────────────────────
-// TESTING ROUTES — Tanpa Auth, Khusus untuk Testing Bluefy Export
-// ⚠ NONAKTIFKAN di production dengan cara menghapus atau membungkus
-//   dengan IP whitelist / token middleware
-// ─────────────────────────────────────────────────────────────
-Route::prefix('testing')->name('testing.')->group(function () {
-    Route::get('/export', [TestingExportController::class, 'index'])->name('export');
-    Route::get('/export/sales/csv/{filename?}',   [TestingExportController::class, 'salesCsv'])->name('sales.csv');
-    Route::get('/export/sales/excel/{filename?}', [TestingExportController::class, 'salesExcel'])->name('sales.excel');
 });
 
 require __DIR__ . '/auth.php';

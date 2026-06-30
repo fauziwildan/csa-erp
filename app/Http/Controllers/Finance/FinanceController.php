@@ -208,42 +208,56 @@ class FinanceController extends Controller
 
         $stores = $isGlobal ? Store::orderBy('name')->get() : $user->stores()->orderBy('name')->get();
 
+        // Cash-basis (settled_at) + net of return, lewat sumber tunggal RewardService.
+        // Plus status pembayaran bonus per toko untuk periode ini.
+        $bonusPaid = \App\Models\BonusPayment::where('period_month', (int) $month)
+            ->where('period_year', (int) $year)
+            ->selectRaw('store_id, COALESCE(SUM(amount),0) AS paid')
+            ->groupBy('store_id')->pluck('paid', 'store_id');
+
         $storeRewards = [];
-
         foreach ($stores as $store) {
-            // Hitung total quantity dan total reward_store untuk bulan & tahun yang dipilih
-            $salesData = \App\Models\SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                ->where('sales.store_id', $store->id)
-                ->whereMonth('sales.created_at', $month)
-                ->whereYear('sales.created_at', $year)
-                ->selectRaw('SUM(sale_items.qty) as total_qty, SUM(sale_items.reward_store) as total_reward')
-                ->first();
-
-            $totalQty = $salesData->total_qty ?? 0;
-            $regularReward = $salesData->total_reward ?? 0;
-            $target = $store->getTargetForMonth((int) $month, (int) $year);
-
-            $excess = 0;
-            $bonus = 0;
-
-            if ($target > 0 && $totalQty > $target) {
-                $excess = $totalQty - $target;
-                $bonusMultiplier = floor($excess / 1000);
-                $bonus = $bonusMultiplier * 1000000;
-            }
-
-            $storeRewards[] = [
-                'store' => $store,
-                'target' => $target,
-                'total_qty' => $totalQty,
-                'excess' => $excess,
-                'regular_reward' => $regularReward,
-                'bonus' => $bonus,
-                'total_reward' => $regularReward + $bonus,
-            ];
+            $row = \App\Services\RewardService::storeMonthly($store, (int) $month, (int) $year);
+            $row['bonus_paid'] = (float) ($bonusPaid[$store->id] ?? 0);
+            $storeRewards[] = $row;
         }
 
         return view('finance.rewards', compact('storeRewards', 'month', 'year'));
+    }
+
+    public function payBonus(Request $request)
+    {
+        $this->authorize('manage settlement');
+
+        $validated = $request->validate([
+            'store_id'     => ['required', 'exists:stores,id'],
+            'period_month' => ['required', 'integer', 'between:1,12'],
+            'period_year'  => ['required', 'integer', 'min:2023'],
+            'amount'       => ['required', 'numeric', 'min:1'],
+            'paid_at'      => ['required', 'date'],
+            'method'       => ['required', 'in:cash,transfer'],
+            'note'         => ['nullable', 'string', 'max:255'],
+            'proof'        => ['nullable', 'image', 'max:4096'],
+        ], [], ['amount' => 'jumlah bonus']);
+
+        $proofPath = $request->hasFile('proof') ? $request->file('proof')->store('bonus_proofs', 'public') : null;
+
+        \App\Models\BonusPayment::create([
+            'store_id'     => $validated['store_id'],
+            'period_month' => $validated['period_month'],
+            'period_year'  => $validated['period_year'],
+            'amount'       => $validated['amount'],
+            'paid_at'      => $validated['paid_at'],
+            'method'       => $validated['method'],
+            'proof_path'   => $proofPath,
+            'note'         => $validated['note'] ?? null,
+            'recorded_by'  => auth()->id(),
+        ]);
+
+        \App\Services\AuditLogService::log('create', 'BonusPayment', "Bayar bonus toko #{$validated['store_id']} Rp " . number_format($validated['amount'], 0, ',', '.') . " periode {$validated['period_month']}/{$validated['period_year']}");
+
+        return redirect()->route('finance.rewards', ['month' => str_pad($validated['period_month'], 2, '0', STR_PAD_LEFT), 'year' => $validated['period_year']])
+            ->with('success', 'Pembayaran bonus dicatat.');
     }
 
     public function sales(Request $r)

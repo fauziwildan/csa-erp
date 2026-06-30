@@ -10,6 +10,8 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\Stock;
 use App\Services\AuditLogService;
+use App\Services\CreditService;
+use App\Services\CustomerService;
 use App\Services\ReferenceNumberService;
 use App\Services\StockService;
 use Illuminate\Http\Request;
@@ -70,6 +72,10 @@ class POSController extends Controller
         $this->authorize('view pos');
         $user = Auth::user();
         $store = $user->primaryStore(); // Laporan dibatasi per toko kasir
+
+        if (!$store) {
+            return back()->with('error', 'Laporan POS hanya tersedia untuk akun yang ditugaskan ke sebuah toko.');
+        }
 
         $period = $r->input('period', 'today');
         $format = $r->input('format', 'pdf');
@@ -139,6 +145,9 @@ class POSController extends Controller
             'payment_status'    => 'nullable|in:lunas,tempo,dp,po',
             'due_date'          => 'nullable|date',
             'dp_amount'         => 'nullable|numeric|min:0',
+            'payments'                      => 'nullable|array',
+            'payments.*.payment_method_id'  => 'required_with:payments|exists:payment_methods,id',
+            'payments.*.amount'             => 'required_with:payments|numeric|min:0',
             'items'             => 'required|array|min:1',
             'items.*.variant_id' => 'required|exists:product_variants,id',
             'items.*.qty'       => 'required|integer|min:1',
@@ -152,7 +161,7 @@ class POSController extends Controller
         }
 
         try {
-            $sale = DB::transaction(function () use ($r, $session, $discountAmount) {
+            $result = DB::transaction(function () use ($r, $session, $discountAmount) {
                 $subtotal = 0;
                 $itemsData = [];
 
@@ -178,7 +187,28 @@ class POSController extends Controller
                 }
 
                 $totalAmount = max(0, $subtotal - $discountAmount);
-                $amountPaid  = (float) $r->amount_paid;
+
+                // Multi-payment: jika ada array `payments`, pakai itu (boleh >1 metode dalam 1 nota).
+                // Jika tidak, jatuh ke metode tunggal seperti perilaku lama.
+                $splitPayments = [];
+                foreach ((array) $r->input('payments', []) as $p) {
+                    $amt = (float) ($p['amount'] ?? 0);
+                    if ($amt > 0) {
+                        $splitPayments[] = ['payment_method_id' => (int) $p['payment_method_id'], 'amount' => $amt];
+                    }
+                }
+
+                if (count($splitPayments) > 0) {
+                    $amountPaid      = array_sum(array_column($splitPayments, 'amount'));
+                    $primaryMethodId = $splitPayments[0]['payment_method_id'];
+                } else {
+                    $amountPaid      = (float) $r->amount_paid;
+                    $primaryMethodId = (int) $r->payment_method_id;
+                    if ($amountPaid > 0) {
+                        $splitPayments[] = ['payment_method_id' => $primaryMethodId, 'amount' => $amountPaid];
+                    }
+                }
+
                 $paymentStatus = $r->input('payment_status', 'lunas');
                 $dpAmount    = (float) ($r->dp_amount ?? 0);
                 $changeAmount = max(0, $amountPaid - $totalAmount);
@@ -187,11 +217,36 @@ class POSController extends Controller
                     throw new \RuntimeException("Jumlah pembayaran kurang dari total transaksi.");
                 }
 
+                // Utang baru yang timbul dari transaksi ini (0 jika lunas).
+                $newDebt = max(0, $totalAmount - $amountPaid);
+
+                // Identifikasi customer (find-or-create) untuk loyalty + kredit.
+                $customer = CustomerService::resolveFromSale($r->customer_name, $r->customer_phone);
+
+                // Transaksi kredit wajib teridentifikasi customer-nya (utang melekat ke customer).
+                if ($newDebt > 0 && ! $customer) {
+                    throw new \RuntimeException("Transaksi kredit wajib mengisi nama/telepon pelanggan.");
+                }
+
+                // Enforcement batas kredit GLOBAL (warning/block/approval).
+                $credit = CreditService::evaluate($customer, $newDebt);
+                $approvalStatus = null;
+                if (! $credit->allowed) {
+                    if ($credit->requires_approval) {
+                        // Mode approval: tahan transaksi. Stok tetap dipotong (reserved),
+                        // tapi nota menunggu persetujuan owner sebelum dianggap final.
+                        $approvalStatus = 'pending';
+                    } else {
+                        throw new \RuntimeException($credit->message);
+                    }
+                }
+
                 $sale = Sale::create([
                     'sale_no'           => ReferenceNumberService::sale(),
                     'cash_session_id'   => $session->id,
                     'store_id'          => $session->store_id,
-                    'payment_method_id' => $r->payment_method_id,
+                    'customer_id'       => $customer?->id,
+                    'payment_method_id' => $primaryMethodId,
                     'subtotal'          => $subtotal,
                     'discount_amount'   => $discountAmount,
                     'total_amount'      => $totalAmount,
@@ -201,8 +256,11 @@ class POSController extends Controller
                     'customer_name'     => $r->customer_name,
                     'customer_phone'    => $r->customer_phone,
                     'payment_status'    => $paymentStatus,
+                    'approval_status'   => $approvalStatus,
                     'due_date'          => $r->due_date,
                     'dp_amount'         => $dpAmount,
+                    // Cash-basis: nota lunas langsung settled hari ini (basis pengakuan komisi & settlement).
+                    'settled_at'        => $paymentStatus === 'lunas' ? now() : null,
                     'created_by'        => Auth::id(),
                 ]);
 
@@ -237,10 +295,38 @@ class POSController extends Controller
                     );
                 }
 
+                // Catat tiap pembayaran (single atau split) ke ledger sale_payments.
+                foreach ($splitPayments as $sp) {
+                    \App\Models\SalePayment::create([
+                        'sale_id'           => $sale->id,
+                        'amount'            => $sp['amount'],
+                        'payment_method_id' => $sp['payment_method_id'],
+                        'paid_at'           => now(),
+                        'received_by'       => Auth::id(),
+                        'note'              => 'Pembayaran saat transaksi',
+                    ]);
+                }
+
+                // Loyalty: beri poin saat nota lunas (cash-basis).
+                if ($paymentStatus === 'lunas' && $customer) {
+                    \App\Services\LoyaltyService::award($customer, $sale);
+                }
+
                 AuditLogService::log('create', 'Sale', "Transaksi {$sale->sale_no} Rp " . number_format($totalAmount, 0, ',', '.'), null, null, Sale::class, $sale->id);
 
-                return $sale;
+                // Pesan ke kasir: prioritaskan info pending approval, lalu peringatan kredit.
+                if ($approvalStatus === 'pending') {
+                    $warning = "Transaksi {$sale->sale_no} MENUNGGU PERSETUJUAN owner (melebihi batas kredit). Barang ditahan sampai disetujui.";
+                } else {
+                    $warning = ($credit->over_limit && $credit->allowed) ? $credit->message : null;
+                }
+
+                return ['sale' => $sale, 'warning' => $warning];
             });
+
+            $sale    = $result['sale'];
+            $warning = $result['warning'] ?? null;
+
             // --- PERUBAHAN BARU: Cek jika request dari AJAX (Pop-up) ---
             if ($r->ajax() || $r->wantsJson()) {
                 $sale->load(['store', 'paymentMethod', 'creator', 'items.variant.product']);
@@ -249,10 +335,12 @@ class POSController extends Controller
                 return response()->json([
                     'success' => true,
                     'sale' => $sale,
+                    'warning' => $warning,
                     'html' => $receiptHtml
                 ]);
             }
-            return redirect()->route('pos.receipt', $sale)->with('success', "Transaksi {$sale->sale_no} berhasil.");
+            $redirect = redirect()->route('pos.receipt', $sale)->with('success', "Transaksi {$sale->sale_no} berhasil.");
+            return $warning ? $redirect->with('warning', $warning) : $redirect;
         } catch (\RuntimeException $e) {
             if ($r->ajax() || $r->wantsJson())
                 return response()->json(['success' => false, 'error' => $e->getMessage()]);
@@ -355,16 +443,6 @@ class POSController extends Controller
         return response()->json($variants);
     }
 
-    public function getStatus($id)
-    {
-        return response()->json(['status' => 'ok']);
-    }
-
-    public function poll()
-    {
-        return response()->json(['ok' => true]);
-    }
-
     /**
      * Autocomplete pelanggan berdasarkan nama atau telepon dari riwayat transaksi.
      */
@@ -375,19 +453,17 @@ class POSController extends Controller
             return response()->json([]);
         }
 
-        $results = Sale::whereNotNull('customer_name')
+        $results = \App\Models\Customer::where('is_active', true)
             ->where(function ($q) use ($term) {
-                $q->where('customer_name', 'like', "%{$term}%")
-                  ->orWhere('customer_phone', 'like', "%{$term}%");
+                $q->where('name', 'like', "%{$term}%")
+                  ->orWhere('phone', 'like', "%{$term}%");
             })
-            ->select('customer_name', 'customer_phone')
-            ->distinct()
-            ->orderBy('customer_name')
+            ->orderBy('name')
             ->limit(8)
             ->get()
-            ->map(fn($s) => [
-                'name'  => $s->customer_name,
-                'phone' => $s->customer_phone ?? '',
+            ->map(fn ($c) => [
+                'name'  => $c->name,
+                'phone' => $c->phone ?? '',
             ]);
 
         return response()->json($results);

@@ -93,6 +93,7 @@
                                 Target</th>
                             <th class="text-right px-4 py-3 text-xs font-semibold text-gray-900 uppercase">Total Bulan Ini
                             </th>
+                            <th class="text-right px-4 py-3 text-xs font-semibold text-gray-600 uppercase">Status Bonus</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -122,10 +123,40 @@
                                 <td class="px-4 py-3 text-right font-bold text-gray-900">
                                     Rp {{ number_format($data['total_reward'], 0, ',', '.') }}
                                 </td>
+                                <td class="px-4 py-3 text-right align-top">
+                                    @php $bp = $data['bonus_paid'] ?? 0; $out = max(0, $data['bonus'] - $bp); @endphp
+                                    @if($data['bonus'] <= 0)
+                                        <span class="text-gray-300">—</span>
+                                    @else
+                                        <span class="text-xs font-bold {{ $out <= 0 ? 'text-green-600' : 'text-amber-600' }}">
+                                            {{ $out <= 0 ? 'LUNAS' : 'Sisa Rp ' . number_format($out, 0, ',', '.') }}
+                                        </span>
+                                        <span class="block text-[10px] text-gray-400">Dibayar Rp {{ number_format($bp, 0, ',', '.') }}</span>
+                                        @can('manage settlement')
+                                        @if($out > 0)
+                                        <details class="mt-1 text-left">
+                                            <summary class="cursor-pointer text-indigo-600 text-[11px]">Catat bayar</summary>
+                                            <form method="POST" action="{{ route('finance.bonus.pay') }}" enctype="multipart/form-data" class="mt-2 space-y-1 bg-gray-50 p-2 rounded-lg">
+                                                @csrf
+                                                <input type="hidden" name="store_id" value="{{ $data['store']->id }}">
+                                                <input type="hidden" name="period_month" value="{{ (int) $month }}">
+                                                <input type="hidden" name="period_year" value="{{ (int) $year }}">
+                                                <input type="number" name="amount" value="{{ (int) $out }}" min="1" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" placeholder="Jumlah">
+                                                <input type="date" name="paid_at" value="{{ now()->format('Y-m-d') }}" class="w-full border border-gray-300 rounded px-2 py-1 text-xs">
+                                                <select name="method" class="w-full border border-gray-300 rounded px-2 py-1 text-xs"><option value="transfer">Transfer</option><option value="cash">Tunai</option></select>
+                                                <input type="file" name="proof" accept="image/*" class="w-full text-xs">
+                                                <input type="text" name="note" class="w-full border border-gray-300 rounded px-2 py-1 text-xs" placeholder="Catatan">
+                                                <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded px-2 py-1 text-xs font-medium">Simpan</button>
+                                            </form>
+                                        </details>
+                                        @endif
+                                        @endcan
+                                    @endif
+                                </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-12 text-center text-gray-400">Tidak ada data toko ditemukan.</td>
+                                <td colspan="8" class="px-4 py-12 text-center text-gray-400">Tidak ada data toko ditemukan.</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -139,6 +170,8 @@
                                     {{ number_format(collect($storeRewards)->sum('bonus'), 0, ',', '.') }}</td>
                                 <td class="px-4 py-3 text-right text-indigo-700">Rp
                                     {{ number_format(collect($storeRewards)->sum('total_reward'), 0, ',', '.') }}</td>
+                                <td class="px-4 py-3 text-right text-gray-500 text-xs">Dibayar Rp
+                                    {{ number_format(collect($storeRewards)->sum('bonus_paid'), 0, ',', '.') }}</td>
                             </tr>
                         </tfoot>
                     @endif

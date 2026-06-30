@@ -61,4 +61,43 @@ class Product extends Model
               ->orWhere('model_code', 'like', "%{$term}%")
         );
     }
+
+    /**
+     * Filter daftar produk (brand/kategori/tipe + pencarian nama/model/SKU varian).
+     * Dipakai bersama oleh ProductController & CatalogController.
+     */
+    public function scopeListingFilters($query, \Illuminate\Http\Request $request)
+    {
+        return $query
+            ->when($request->brand_id, fn($q) => $q->where('brand_id', $request->brand_id))
+            ->when($request->category_id, fn($q) => $q->where('category_id', $request->category_id))
+            ->when($request->product_type_id, fn($q) => $q->where('product_type_id', $request->product_type_id))
+            ->when($request->search, function ($q) use ($request) {
+                $term = $request->search;
+                $q->where(function ($sub) use ($term) {
+                    $sub->where('name', 'like', "%{$term}%")
+                        ->orWhere('model_code', 'like', "%{$term}%")
+                        ->orWhereHas('variants', fn($vq) => $vq->where('sku', 'like', "%{$term}%"));
+                });
+            });
+    }
+
+    /**
+     * Closure eager-load stok yang dibatasi sesuai role user
+     * (kepala toko → tokonya, admin gudang → gudangnya, lainnya → semua).
+     * Dipakai bersama oleh Catalog, Product, dan Dashboard.
+     */
+    public static function roleStockConstraint(?User $user): \Closure
+    {
+        return function ($q) use ($user) {
+            if ($user && $user->hasRole('kepala toko')) {
+                $q->where('location_type', 'store')
+                  ->whereIn('location_id', $user->stores()->pluck('stores.id'));
+            } elseif ($user && $user->hasRole('admin gudang')) {
+                $q->where('location_type', 'warehouse')
+                  ->whereIn('location_id', $user->warehouses()->pluck('warehouses.id'));
+            }
+            // superadmin/owner/finance: tanpa filter (lihat semua stok)
+        };
+    }
 }

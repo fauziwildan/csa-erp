@@ -13,14 +13,12 @@ class RolePermissionSeeder extends Seeder
         app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
         $permissions = [
-            // dashboard
+            // Dashboard
             'view dashboard',
 
             // Auth & User Management
             'manage users',
             'manage roles',
-            'manage permissions',
-            'manage settings',
 
             // Master Data
             'view master',
@@ -33,41 +31,31 @@ class RolePermissionSeeder extends Seeder
             'create product',
             'update product',
             'delete product',
-            'manage product',
             'print product label',
             'edit product stock',
+            'create local stock entry',
 
             // Warehouse
             'view warehouse',
             'create warehouse stock',
-            'update warehouse stock',
-            'adjust warehouse stock',
             'view warehouse dashboard',
-            'manage warehouse',
 
             // Shipping
             'view shipment',
             'create shipment',
             'update shipment',
-            'approve shipment',
-            'receive shipment',
             'print shipment',
-            'cancel shipment',
 
             // Store
             'view store',
             'view catalog',
-            'manage store stock',
             'receive store shipment',
             'request store transfer',
             'approve store transfer',
 
             // Transfer
             'view transfer',
-            'create transfer',
-            'approve transfer',
             'receive transfer',
-            'cancel transfer',
             'print transfer',
 
             // POS
@@ -84,7 +72,6 @@ class RolePermissionSeeder extends Seeder
             'process customer return',
             'view store return',
             'create store return',
-            'approve store return',
             'receive store return',
             'inspect return',
 
@@ -97,16 +84,33 @@ class RolePermissionSeeder extends Seeder
 
             // Finance
             'view finance',
-            'export finance',
-            'manage finance',
 
             // Reports
             'view report',
             'export report',
-            'print report',
 
-            // Audit Log
-            'view audit log',
+            // Expenses
+            'view expenses',
+            'create expenses',
+            'update expenses',
+            'delete expenses',
+
+            // Settings (kredit global, dll)
+            'manage settings',
+
+            // Customers
+            'view customers',
+            'manage customers',
+
+            // Credit approval (mode approval)
+            'approve credit',
+
+            // Pelunasan / pembayaran kredit
+            'record payment',
+
+            // Settlement toko → owner
+            'view settlement',
+            'manage settlement',
         ];
 
         foreach ($permissions as $permission) {
@@ -129,21 +133,34 @@ class RolePermissionSeeder extends Seeder
             'print shipment',
             'view store',
             'view transfer',
+            'request store transfer',
+            'approve store transfer',
+            'receive transfer',
             'print transfer',
             'view customer return',
             'view store return',
             'view stock opname',
             'view finance',
-            'export finance',
             'view report',
             'export report',
-            'print report',
-            'view audit log',
+            'view expenses',
+            'create expenses',
+            'update expenses',
+            'delete expenses',
+            'create local stock entry',
+            'manage settings',
+            'view customers',
+            'manage customers',
+            'approve credit',
+            'record payment',
+            'view settlement',
+            'manage settlement',
         ]);
 
         // FINANCE
         $finance = Role::firstOrCreate(['name' => 'finance', 'guard_name' => 'web']);
         $finance->syncPermissions([
+            'view dashboard',
             'view master',
             'view product',
             'view warehouse',
@@ -156,47 +173,51 @@ class RolePermissionSeeder extends Seeder
             'view finance',
             'view pos',
             'view cash session',
-            'export finance',
-            'manage finance',
             'view report',
             'export report',
-            'print report',
+            'view customers',
+            'record payment',
+            'view settlement',
+            'manage settlement',
         ]);
 
         // ADMIN GUDANG
         $adminWarehouse = Role::firstOrCreate(['name' => 'admin gudang', 'guard_name' => 'web']);
         $adminWarehouse->syncPermissions([
+            'view dashboard',
             'view product',
             'view warehouse',
             'create warehouse stock',
-            'update warehouse stock',
-            'adjust warehouse stock',
             'view warehouse dashboard',
-            'manage warehouse',
             'view shipment',
             'create shipment',
             'update shipment',
-            'approve shipment',
-            'receive shipment',
             'print shipment',
-            'cancel shipment',
+            'view transfer',
+            'request store transfer',
+            'approve store transfer',
+            'receive transfer',
+            'print transfer',
             'view store return',
-            'approve store return',
             'receive store return',
             'inspect return',
+            'view expenses',
+            'create expenses',
+            'update expenses',
+            'delete expenses',
+            'create local stock entry',
         ]);
 
         // OPERATOR GUDANG
         $operatorWarehouse = Role::firstOrCreate(['name' => 'operator gudang', 'guard_name' => 'web']);
         $operatorWarehouse->syncPermissions([
+            'view dashboard',
             'view product',
             'view warehouse',
             'create warehouse stock',
-            'update warehouse stock',
             'view warehouse dashboard',
             'view shipment',
             'update shipment',
-            'receive shipment',
             'print shipment',
             'view store return',
             'receive store return',
@@ -207,12 +228,17 @@ class RolePermissionSeeder extends Seeder
         // KEPALA TOKO
         $storeHead = Role::firstOrCreate(['name' => 'kepala toko', 'guard_name' => 'web']);
         $storeHead->syncPermissions([
+            'view dashboard',
             'view product',
             'view store',
             'view catalog',
+            'access pos',
             'view pos',
+            'process sale',
+            'apply discount',
+            'open cash session',
+            'close cash session',
             'view cash session',
-            'manage store stock',
             'receive store shipment',
             'request store transfer',
             'approve store transfer',
@@ -227,8 +253,17 @@ class RolePermissionSeeder extends Seeder
             'create stock opname',
             'submit stock opname',
             'view report',
-            'print report',
-            'print product label'
+            'print product label',
+            'view expenses',
+            'create expenses',
+            'update expenses',
+            'delete expenses',
+            'create local stock entry',
+            'view customers',
+            'manage customers',
+            'approve credit',
+            'record payment',
+            'view settlement',
         ]);
 
         // KASIR
@@ -241,6 +276,8 @@ class RolePermissionSeeder extends Seeder
             'open cash session',
             'close cash session',
             'view cash session',
+            'view customers',
+            'record payment',
         ]);
     }
 }

@@ -52,6 +52,55 @@
         </div>
     </div>
 
+    {{-- Refund / Tukar --}}
+    <div class="bg-white rounded-xl border border-gray-200 p-5">
+        <div class="flex items-center gap-2 mb-3">
+            @if($return->isExchange())
+                <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold">TUKAR BARANG</span>
+            @else
+                <span class="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">REFUND</span>
+            @endif
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
+            <div>
+                <p class="text-xs text-gray-400">Nilai Barang Diretur</p>
+                <p class="font-bold text-gray-800">Rp {{ number_format($return->refund_amount, 0, ',', '.') }}</p>
+            </div>
+            @if($return->isExchange())
+                <div>
+                    <p class="text-xs text-gray-400">Selisih</p>
+                    <p class="font-bold {{ $return->exchange_diff > 0 ? 'text-indigo-700' : ($return->exchange_diff < 0 ? 'text-green-700' : 'text-gray-700') }}">
+                        {{ $return->exchange_diff > 0 ? 'Customer bayar ' : ($return->exchange_diff < 0 ? 'Refund ' : '') }}Rp {{ number_format(abs($return->exchange_diff), 0, ',', '.') }}
+                    </p>
+                </div>
+                @if($return->exchangeSale)
+                <div>
+                    <p class="text-xs text-gray-400">Nota Pengganti</p>
+                    <p class="font-mono text-xs text-indigo-600">{{ $return->exchangeSale->sale_no }}</p>
+                </div>
+                @endif
+            @endif
+            @if($return->refund_method)
+                <div>
+                    <p class="text-xs text-gray-400">Metode Refund</p>
+                    <p class="font-medium text-gray-700 capitalize">{{ $return->refund_method }}</p>
+                </div>
+                @if($return->refund_method === 'transfer')
+                    <div>
+                        <p class="text-xs text-gray-400">Rekening Tujuan</p>
+                        <p class="text-sm text-gray-700">{{ $return->refund_bank_name }} — {{ $return->refund_bank_account }}<br><span class="text-xs text-gray-500">a.n. {{ $return->refund_account_holder }}</span></p>
+                    </div>
+                    @if($return->refund_proof_path)
+                    <div>
+                        <p class="text-xs text-gray-400">Bukti Transfer</p>
+                        <a href="{{ Storage::url($return->refund_proof_path) }}" target="_blank" class="text-indigo-600 hover:underline text-xs">Lihat bukti</a>
+                    </div>
+                    @endif
+                @endif
+            @endif
+        </div>
+    </div>
+
     {{-- Items --}}
     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div class="px-5 py-3 border-b border-gray-100">

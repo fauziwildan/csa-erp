@@ -3,8 +3,88 @@
 @section('title', 'Dashboard')
 @section('page-title', 'Dashboard')
 
+@push('styles')
+<style>
+    /* ===== Dashboard premium glass (semua kartu .bg-white di dalam .dash) ===== */
+    .dash .bg-white{
+        background:linear-gradient(160deg, rgba(255,255,255,.78), rgba(255,255,255,.56)) !important;
+        backdrop-filter:blur(18px) saturate(140%); -webkit-backdrop-filter:blur(18px) saturate(140%);
+        border:1px solid rgba(255,255,255,.6) !important;
+        border-radius:22px !important;
+        box-shadow:
+            0 1px 2px rgba(16,24,40,.04),
+            0 16px 34px -18px rgba(60,70,120,.20),
+            inset 0 1px 0 rgba(255,255,255,.75) !important;
+        transition:transform .25s cubic-bezier(.22,1,.36,1), box-shadow .25s ease !important;
+    }
+    .dash a.bg-white:hover, .dash .bg-white.hover\:shadow-md:hover{
+        transform:translateY(-3px);
+        box-shadow:
+            0 1px 2px rgba(16,24,40,.05),
+            0 26px 50px -20px rgba(60,70,120,.3),
+            inset 0 1px 0 rgba(255,255,255,.8) !important;
+    }
+    /* Welcome banner → gradient transparan (glass), tidak solid */
+    .dash .bg-gradient-to-r.from-indigo-600{
+        background:linear-gradient(135deg, rgba(99,102,241,.82), rgba(134,142,255,.66)) !important;
+        backdrop-filter:blur(10px) saturate(140%); -webkit-backdrop-filter:blur(10px) saturate(140%);
+        border:1px solid rgba(255,255,255,.4) !important;
+        border-radius:26px !important;
+        box-shadow:0 24px 50px -20px rgba(91,94,246,.45), inset 0 1px 0 rgba(255,255,255,.4) !important;
+    }
+    /* badge sudut kartu sedikit lebih halus */
+    .dash .rounded-bl-lg{ backdrop-filter:blur(4px); }
+
+    /* ===== HP: kartu lebih ringkas, muat 2 kolom ===== */
+    @media (max-width:639px){
+        .dash .cards-tight > *{ padding:0.85rem !important; border-radius:16px !important; }
+        .dash .cards-tight .text-3xl{ font-size:1.15rem !important; line-height:1.2 !important; }
+        .dash .cards-tight .text-xl{ font-size:1.05rem !important; line-height:1.2 !important; }
+        .dash .cards-tight .uppercase{ font-size:9.5px !important; letter-spacing:.02em !important; }
+        .dash .cards-tight .p-2{ display:none !important; }            /* sembunyikan ikon box di HP */
+        .dash .cards-tight .w-24.h-24,
+        .dash .cards-tight .w-16.h-16{ width:3.5rem !important; height:3.5rem !important; } /* perkecil dekorasi */
+        .dash .cards-tight .text-\[11px\]{ font-size:10px !important; }
+
+    }
+    /* Arus Kas: kartu interaktif 1-card */
+    [x-cloak]{ display:none !important; }
+    /* canvas donut tak boleh melebihi kolomnya (cegah overflow/scroll kanan) */
+    .dash .cashflow canvas{ max-width:100% !important; }
+    .dash .cashflow{ overflow:hidden; }
+    /* animasi menyusutnya donut (pakai width inline, bukan class Tailwind dinamis) */
+    .dash .cashflow .donutcol{ transition:width .55s cubic-bezier(.22,1,.36,1); }
+
+    /* ===== Statistik: kartu seragam & aesthetic ===== */
+    .dash .statgrid > *{
+        min-height:112px;
+        display:flex; flex-direction:column; justify-content:space-between;
+        padding:1.05rem 1rem !important;
+    }
+    .dash .statgrid svg{ display:none !important; }              /* ikon inline yg tak konsisten dihilangkan */
+    .dash .statgrid .flex{ display:block !important; }           /* number tak perlu flex (ikon hilang) */
+    /* badge sudut → chip melayang rapi (warna kategori dipertahankan) */
+    .dash .statgrid .rounded-bl-lg{
+        top:.6rem !important; right:.6rem !important; left:auto !important; bottom:auto !important;
+        border-radius:999px !important;
+        padding:.16rem .55rem !important;
+        font-size:8.5px !important; letter-spacing:.04em !important; line-height:1.5 !important;
+        box-shadow:0 1px 2px rgba(16,24,40,.06);
+    }
+    /* hierarki angka & label konsisten */
+    .dash .statgrid .text-2xl,
+    .dash .statgrid .text-xl{ font-size:1.5rem !important; line-height:1.15 !important; margin-top:.1rem !important; }
+    .dash .statgrid .text-lg{ font-size:1.15rem !important; line-height:1.2 !important; margin-top:.1rem !important; }
+    @media (max-width:639px){
+        .dash .statgrid > *{ min-height:96px; padding:.85rem !important; }
+        .dash .statgrid .text-2xl, .dash .statgrid .text-xl{ font-size:1.3rem !important; }
+        .dash .statgrid .text-lg{ font-size:1.02rem !important; }
+    }
+</style>
+@endpush
+
 @section('content')
-    <div class="space-y-6">
+    <div class="space-y-6 dash">
 
         {{-- 1. Welcome Banner & Filter --}}
         <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-xl p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
@@ -59,17 +139,21 @@
 
         {{-- Pelanggan Jatuh Tempo Card --}}
         @if(isset($approachingDueSales) && $approachingDueSales->count() > 0)
-        <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
-            <div class="bg-red-50/50 border-b border-red-100 px-6 py-4 flex items-center justify-between">
-                <h4 class="text-sm font-bold text-red-800 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-red-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div x-data="{ open: window.innerWidth >= 768 }" class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden">
+            <button type="button" @click="open = !open" class="w-full bg-red-50/50 border-b border-red-100 px-5 sm:px-6 py-4 flex items-center justify-between gap-3 text-left">
+                <h4 class="text-sm font-bold text-red-800 flex items-center gap-2 min-w-0">
+                    <svg class="w-5 h-5 text-red-600 animate-pulse shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
                     </svg>
-                    Peringatan Pembayaran Jatuh Tempo Pelanggan
+                    <span class="truncate">Peringatan Jatuh Tempo</span>
+                    <span class="shrink-0 text-xs bg-red-600 text-white px-2 py-0.5 rounded-full font-bold">{{ $approachingDueSales->count() }}</span>
                 </h4>
-                <span class="text-xs bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full font-bold">Mendekati / Lewat Tempo</span>
-            </div>
-            <div class="divide-y divide-gray-100">
+                <div class="flex items-center gap-2 shrink-0">
+                    <span class="hidden md:inline text-xs bg-red-100 text-red-800 px-2.5 py-0.5 rounded-full font-bold">Mendekati / Lewat Tempo</span>
+                    <svg class="w-5 h-5 text-red-500 transition-transform duration-200" :class="open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+            </button>
+            <div x-show="open" x-transition.opacity class="divide-y divide-gray-100" style="display:none">
                 @foreach($approachingDueSales as $sale)
                 @php
                     $due = \Carbon\Carbon::parse($sale->due_date);
@@ -123,7 +207,7 @@
                             </p>
                         </div>
                         <div class="shrink-0 text-right">
-                            <a href="{{ route('store.customers.show', ['name' => $sale->customer_name, 'phone' => $sale->customer_phone]) }}" class="inline-flex items-center gap-1 bg-gray-900 text-white hover:bg-gray-800 text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
+                            <a href="{{ route('store.customers.show', ['name' => $sale->customer_name, 'phone' => $sale->customer_phone]) }}" class="inline-flex items-center gap-1 bg-indigo-600 text-white hover:bg-indigo-700 text-xs px-3 py-1.5 rounded-lg font-medium shadow-sm transition">
                                 <span>Detail</span>
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
@@ -151,7 +235,7 @@
                 <span class="text-xs font-medium bg-gray-100 text-gray-500 px-3 py-1 rounded-full uppercase tracking-widest">Confidential</span>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="grid grid-cols-2 md:grid-cols-2 gap-3 sm:gap-6 cards-tight">
                 {{-- Card Reward Toko --}}
                 <div class="bg-white rounded-2xl shadow-sm border border-indigo-100 p-6 relative overflow-hidden">
                     <div class="absolute -right-4 -top-4 w-24 h-24 bg-indigo-50 rounded-full opacity-50"></div>
@@ -185,7 +269,7 @@
         </div>
 
         {{-- Daily Financial Cards --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 cards-tight">
             {{-- Card Pemasukan Hari Ini --}}
             <a href="{{ route('finance.index') }}" class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:border-blue-400 transition-all hover:shadow-md group relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
@@ -235,26 +319,68 @@
             </a>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {{-- Interactive Donut Chart --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col">
-                 <h3 class="text-sm font-semibold text-gray-800 mb-2">📊 Arus Kas (Bulan Ini)</h3>
-                 <p class="text-xs text-gray-500 mb-4">Klik pada bagian grafik warna-warni di bawah untuk melihat detail pada kartu di sebelahnya.</p>
-                 <div class="relative flex-1 min-h-[250px] w-full flex items-center justify-center cursor-pointer">
-                     <canvas id="financeDonutChart"></canvas>
-                 </div>
-            </div>
+        {{-- Arus Kas — SATU kartu interaktif: klik segmen → detail geser dari kanan, bisa ditutup --}}
+        <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-5 sm:p-6 cashflow overflow-hidden"
+             x-data="{
+                active: null,
+                labels: @js(['Pendapatan','Pengeluaran','Laba Bersih']),
+                values: @js([(int) $incomeTotal, (int) $expenseTotal, (int) $profitTotal]),
+                colors: @js(['#3b82f6','#ef4444','#10b981']),
+                bg:     @js(['#eff6ff','#fef2f2','#ecfdf5']),
+                descs:  @js([
+                    'Total pendapatan kotor dari penjualan keseluruhan berdasarkan filter.',
+                    'Total biaya pengeluaran (operasional, dll) berdasarkan filter gudang/toko.',
+                    'Sisa keuntungan bersih (Pendapatan dikurangi Pengeluaran).'
+                ]),
+                icons: @js([
+                    '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z\'/>',
+                    '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M13 17h8m0 0V9m0 8l-8-8-4 4-6-6\'/>',
+                    '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M13 7h8m0 0v8m0-8l-8 8-4-4-6 6\'/>'
+                ])
+             }"
+             @cashflow-select.window="active = $event.detail.idx">
 
-            {{-- Preview Card for Donut Chart --}}
-            <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col justify-center items-center text-center relative overflow-hidden" id="financePreviewCard">
-                 <div class="absolute -top-10 -right-10 w-40 h-40 bg-gray-50 rounded-full opacity-50 pointer-events-none" id="previewBg"></div>
-                 
-                 <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-6 z-10 transition-colors duration-300" id="previewIconBox">
-                    <svg class="w-8 h-8 text-gray-400" id="previewIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"/></svg>
-                 </div>
-                 <p class="text-sm text-gray-500 font-bold uppercase tracking-widest z-10" id="previewTitle">Pilih Segmen Grafik</p>
-                 <p class="text-4xl font-bold text-gray-300 mt-3 z-10 transition-colors duration-300" id="previewValue">Rp 0</p>
-                 <p class="text-sm text-gray-400 mt-4 z-10 px-4 max-w-md" id="previewDesc">Grafik preview akan muncul di sini saat Anda mengklik salah satu warna pada grafik donat di sebelah kiri.</p>
+            <div class="flex items-center justify-between mb-1">
+                <h3 class="text-sm font-semibold text-gray-800">📊 Arus Kas (Bulan Ini)</h3>
+                <button type="button" x-show="active!==null" x-cloak @click="active=null"
+                        class="inline-flex items-center gap-1 text-xs font-medium text-gray-400 hover:text-gray-700 transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    Tutup
+                </button>
+            </div>
+            <p x-show="active===null" class="text-xs text-gray-500 mb-3">Klik salah satu bagian grafik untuk melihat detailnya.</p>
+
+            <div class="flex items-center gap-4">
+                {{-- Donut --}}
+                <div class="donutcol min-w-0" style="width:100%" :style="active!==null ? 'width:40%' : 'width:100%'">
+                    <div class="relative h-44 sm:h-52 w-full flex items-center justify-center cursor-pointer">
+                        <canvas id="financeDonutChart"></canvas>
+                    </div>
+                    {{-- legenda custom (hilang saat ada segmen aktif) --}}
+                    <div x-show="active===null" x-transition.opacity class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 mt-3">
+                        <template x-for="(l,i) in labels" :key="i">
+                            <span class="inline-flex items-center gap-1.5 text-xs text-gray-600">
+                                <span class="w-2.5 h-2.5 rounded-full" :style="`background:${colors[i]}`"></span>
+                                <span x-text="l"></span>
+                            </span>
+                        </template>
+                    </div>
+                </div>
+
+                {{-- Detail — muncul & geser dari kanan saat segmen diklik --}}
+                <div x-show="active!==null" x-cloak
+                     x-transition:enter="transition ease-out duration-500 delay-150"
+                     x-transition:enter-start="opacity-0 translate-x-4"
+                     x-transition:enter-end="opacity-100 translate-x-0"
+                     class="flex-1 min-w-0 rounded-2xl p-4 flex flex-col justify-center text-left"
+                     :style="active!==null ? ('background:' + bg[active]) : ''">
+                    <div class="w-9 h-9 rounded-full bg-white flex items-center justify-center mb-2.5 shadow-sm shrink-0" :style="active!==null ? ('color:' + colors[active]) : ''">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" x-html="active!==null ? icons[active] : ''"></svg>
+                    </div>
+                    <p class="text-[10px] font-bold uppercase tracking-wide text-gray-500" x-text="active!==null ? labels[active] : ''"></p>
+                    <p class="text-lg sm:text-2xl font-black mt-0.5 break-words leading-tight" :style="active!==null ? ('color:' + colors[active]) : ''" x-text="active!==null ? ('Rp ' + values[active].toLocaleString('id')) : ''"></p>
+                    <p class="text-[11px] text-gray-500 mt-2 leading-relaxed" x-text="active!==null ? descs[active] : ''"></p>
+                </div>
             </div>
         </div>
         @endhasanyrole
@@ -263,7 +389,7 @@
         <div class="mb-2 mt-8">
             <h3 class="text-lg font-bold text-gray-800 border-l-4 border-purple-500 pl-3">Statistik Sistem & Modul</h3>
         </div>
-        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 statgrid">
             
             <a href="{{ route('master.brands.index') }}" class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm hover:border-purple-300 transition-colors relative overflow-hidden group">
                 <span class="absolute top-0 right-0 bg-gray-100 text-gray-500 text-[9px] font-bold px-2 py-1 rounded-bl-lg group-hover:bg-purple-100 group-hover:text-purple-700 transition-colors">MASTER DATA</span>
@@ -312,7 +438,7 @@
         </div>
 
         {{-- 4. INVENTORY & RETURNS --}}
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 statgrid">
             <div class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm relative overflow-hidden">
                 <span class="absolute top-0 right-0 bg-blue-50 text-blue-600 text-[9px] font-bold px-2 py-1 rounded-bl-lg">GUDANG</span>
                 <p class="text-[10px] text-gray-500 font-medium uppercase tracking-wide mt-2">Valuasi Aset Gudang</p>
@@ -547,7 +673,7 @@
                     'Sisa keuntungan bersih (Pendapatan dikurangi Pengeluaran).'
                 ];
 
-                new Chart(ctxFinance, {
+                window.financeChart = new Chart(ctxFinance, {
                     type: 'doughnut',
                     data: {
                         labels: fLabels,
@@ -561,26 +687,14 @@
                     },
                     options: {
                         maintainAspectRatio: false,
+                        responsive: true,
                         cutout: '70%',
-                        plugins: {
-                            legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
-                        },
+                        animation: { duration: 700 },
+                        transitions: { resize: { animation: { duration: 0 } } }, // resize TANPA animasi → tak flicker
+                        plugins: { legend: { display: false } },
                         onClick: function(event, elements) {
                             if (elements.length > 0) {
-                                const idx = elements[0].index;
-                                
-                                // Update Preview DOM Elements
-                                document.getElementById('previewTitle').innerText = fLabels[idx];
-                                document.getElementById('previewValue').innerText = 'Rp ' + fData[idx].toLocaleString('id');
-                                document.getElementById('previewValue').style.color = fColors[idx];
-                                document.getElementById('previewDesc').innerText = fDesc[idx];
-                                
-                                const iconBox = document.getElementById('previewIconBox');
-                                iconBox.style.backgroundColor = fBgColors[idx];
-                                iconBox.style.color = fColors[idx];
-                                
-                                document.getElementById('previewIcon').innerHTML = fIcons[idx];
-                                document.getElementById('previewIcon').style.color = fColors[idx];
+                                window.dispatchEvent(new CustomEvent('cashflow-select', { detail: { idx: elements[0].index } }));
                             }
                         }
                     }

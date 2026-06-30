@@ -154,6 +154,13 @@ class TransferController extends Controller
     {
         $this->authorize('request store transfer');
 
+        // Pengiriman hanya boleh dilakukan oleh pihak toko asal (kecuali admin global).
+        $user = Auth::user();
+        if (! $user->hasAnyRole(['superadmin', 'owner', 'admin gudang'])
+            && ! $user->stores()->where('stores.id', $transfer->from_store_id)->exists()) {
+            abort(403, 'Hanya toko asal yang dapat mengirim transfer ini.');
+        }
+
         if (!$transfer->isApproved()) {
             return back()->with('error', 'Transfer harus disetujui terlebih dahulu.');
         }
@@ -240,6 +247,22 @@ class TransferController extends Controller
                             $qtyReceived,
                             'transfer_in',
                             "Transfer {$transfer->transfer_no} ← {$transfer->fromStore->name}",
+                            Transfer::class,
+                            $transfer->id
+                        );
+                    }
+
+                    // Selisih yang tidak diterima dikembalikan ke stok toko asal
+                    // (stok toko asal sudah dikurangi penuh sebesar qty_sent saat 'shipped').
+                    $shortfall = $item->qty_sent - $qtyReceived;
+                    if ($shortfall > 0) {
+                        StockService::mutate(
+                            $item->variant,
+                            'store',
+                            $transfer->from_store_id,
+                            $shortfall,
+                            'transfer_in',
+                            "Selisih transfer {$transfer->transfer_no} dikembalikan ke {$transfer->fromStore->name}",
                             Transfer::class,
                             $transfer->id
                         );

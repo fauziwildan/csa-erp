@@ -14,53 +14,19 @@ class CatalogController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $sortBy = $request->input('sort_by', 'created_at');
-        $sortDir = $request->input('sort_dir', 'desc');
-        if (!in_array($sortDir, ['asc', 'desc'])) {
-            $sortDir = 'desc';
-        }
+        $sortBy  = $request->input('sort_by', 'created_at');
+        $sortDir = in_array($request->input('sort_dir'), ['asc', 'desc']) ? $request->input('sort_dir') : 'desc';
 
-        $query = Product::with(['brand', 'category', 'images', 
-            // Filter stok berdasarkan Role User
-            'variants.stocks' => function ($q) use ($user) {
-                if ($user && $user->hasRole('kepala toko')) {
-                    $storeIds = $user->stores()->pluck('stores.id');
-                    $q->where('location_type', 'store')->whereIn('location_id', $storeIds);
-                } elseif ($user && $user->hasRole('admin gudang')) {
-                    $warehouseIds = $user->warehouses()->pluck('warehouses.id');
-                    $q->where('location_type', 'warehouse')->whereIn('location_id', $warehouseIds);
-                }
-                // Superadmin/Owner otomatis melihat semua stok karena tidak difilter
-            }
-        ])
+        $stockConstraint = Product::roleStockConstraint($user);
+
+        $query = Product::with(['brand', 'category', 'images', 'variants.stocks' => $stockConstraint])
             ->where('is_active', true)
-            ->when($request->brand_id,    fn($q) => $q->where('brand_id', $request->brand_id))
-            ->when($request->category_id, fn($q) => $q->where('category_id', $request->category_id))
-            ->when($request->search, function ($q) use ($request) {
-                // Modifikasi: Cari Nama, Kode Model, ATAU intip ke SKU Varian
-                $q->where(function ($subQuery) use ($request) {
-                    $subQuery->where('name', 'like', '%' . $request->search . '%')
-                             ->orWhere('model_code', 'like', '%' . $request->search . '%')
-                             ->orWhereHas('variants', function ($vq) use ($request) {
-                                 $vq->where('sku', 'like', '%' . $request->search . '%');
-                             });
-                });
-            });
+            ->listingFilters($request);
 
         if ($sortBy === 'stock') {
-            $query->withSum(['stocks as total_stock' => function ($q) use ($user) {
-                if ($user) {
-                    if ($user->hasRole('kepala toko')) {
-                        $storeIds = $user->stores()->pluck('stores.id');
-                        $q->where('location_type', 'store')->whereIn('location_id', $storeIds);
-                    } elseif ($user->hasRole('admin gudang')) {
-                        $warehouseIds = $user->warehouses()->pluck('warehouses.id');
-                        $q->where('location_type', 'warehouse')->whereIn('location_id', $warehouseIds);
-                    }
-                }
-            }], 'qty')
-            ->orderBy('total_stock', $sortDir)
-            ->orderBy('created_at', 'desc');
+            $query->withSum(['stocks as total_stock' => $stockConstraint], 'qty')
+                ->orderBy('total_stock', $sortDir)
+                ->orderBy('created_at', 'desc');
         } else {
             $query->orderBy('created_at', $sortDir);
         }
@@ -79,18 +45,9 @@ class CatalogController extends Controller
         $productVariant->load([
             'product.brand', 'product.category', 'product.images',
             'product.variants.color', 'product.variants.size', 'color', 'size',
-            // Filter stok varian di halaman detail
-            'product.variants.stocks' => function ($q) use ($user) {
-                if ($user->hasRole('kepala toko')) {
-                    $storeIds = $user->stores()->pluck('stores.id');
-                    $q->where('location_type', 'store')->whereIn('location_id', $storeIds);
-                } elseif ($user->hasRole('admin gudang')) {
-                    $warehouseIds = $user->warehouses()->pluck('warehouses.id');
-                    $q->where('location_type', 'warehouse')->whereIn('location_id', $warehouseIds);
-                }
-            }
+            'product.variants.stocks' => Product::roleStockConstraint($user),
         ]);
-        
+
         return view('catalog.show', compact('productVariant'));
     }
 }

@@ -138,7 +138,12 @@
                                 <td class="px-4 py-3 text-xs text-gray-400">{{ $sale->created_at->format('d/m/Y H:i') }}</td>
                                 <td class="px-4 py-3 text-xs text-gray-700">{{ $sale?->store?->name }}</td>
                                 <td class="px-4 py-3 text-xs text-gray-700">{{ $sale->creator?->name ?? '—' }}</td>
-                                <td class="px-4 py-3 text-xs text-gray-700">{{ $sale->paymentMethod?->name ?? '—' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-700">
+                                    {{ $sale->paymentMethodLabel() }}
+                                    @if($sale->isSplitPayment())
+                                        <span class="ml-1 inline-block text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Split</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 text-right text-xs text-gray-700">{{ $sale->items->sum('qty') }}</td>
                                 <td class="px-4 py-3 text-right text-sm font-semibold text-gray-800">
                                     Rp {{ number_format($sale->total_amount, 0, ',', '.') }}
@@ -399,7 +404,18 @@ function posHistoryApp() {
                 <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Subtotal</span><span>Rp ${fmt(sale.subtotal)}</span></div>
                 ${sale.discount_amount > 0 ? `<div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Diskon</span><span>-Rp ${fmt(sale.discount_amount)}</span></div>` : ''}
                 <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:15px;margin-top:8px"><span>TOTAL</span><span>Rp ${fmt(sale.total_amount)}</span></div>
-                <div style="display:flex;justify-content:space-between;margin-top:8px"><span>Bayar (${sale.payment_status === 'lunas' ? 'Tunai' : 'Uang Muka/DP'})</span><span>Rp ${fmt(sale.amount_paid)}</span></div>
+                ${(() => {
+                    const pays = sale.payments || [];
+                    const map = {};
+                    pays.forEach(p => { const n = (p.payment_method && p.payment_method.name) || '—'; map[n] = (map[n]||0) + Number(p.amount||0); });
+                    const keys = Object.keys(map);
+                    if (keys.length > 1) {
+                        return `<div style="display:flex;justify-content:space-between;margin-top:8px;font-weight:bold"><span>PEMBAYARAN</span><span></span></div>` +
+                            keys.map(n => `<div style="display:flex;justify-content:space-between"><span>&middot; ${n}</span><span>Rp ${fmt(map[n])}</span></div>`).join('');
+                    }
+                    const label = sale.payment_status === 'lunas' ? (keys[0] || 'Tunai') : 'Uang Muka/DP';
+                    return `<div style="display:flex;justify-content:space-between;margin-top:8px"><span>Bayar (${label})</span><span>Rp ${fmt(sale.amount_paid)}</span></div>`;
+                })()}
                 ${sale.payment_status !== 'lunas' ? `<div style="display:flex;justify-content:space-between;font-weight:bold;color:#dc2626;margin-bottom:4px"><span>Sisa Hutang</span><span>Rp ${fmt(Math.max(0, sale.total_amount - sale.amount_paid))}</span></div>` : ''}
                 ${sale.change_amount > 0 ? `<div style="display:flex;justify-content:space-between;font-weight:bold;margin-bottom:4px"><span>Kembalian</span><span>Rp ${fmt(sale.change_amount)}</span></div>` : ''}
                 <div style="border-top:1px dashed #000;margin:10px 0"></div>
@@ -562,8 +578,17 @@ function posHistoryApp() {
                     }
                     text += alignLR("TOTAL", "Rp " + parseInt(sale.total_amount).toLocaleString('id-ID'));
                     
-                    let bayarLabel = (sale.payment_status === 'lunas') ? 'Bayar (Tunai)' : 'Bayar (DP)';
-                    text += alignLR(bayarLabel, "Rp " + parseInt(sale.amount_paid).toLocaleString('id-ID'));
+                    const _pays = sale.payments || [];
+                    const _map = {};
+                    _pays.forEach(p => { const n = (p.payment_method && p.payment_method.name) || '-'; _map[n] = (_map[n]||0) + Number(p.amount||0); });
+                    const _keys = Object.keys(_map);
+                    if (_keys.length > 1) {
+                        text += "PEMBAYARAN:\n";
+                        _keys.forEach(n => { text += alignLR("  " + n, "Rp " + parseInt(_map[n]).toLocaleString('id-ID')); });
+                    } else {
+                        let bayarLabel = (sale.payment_status === 'lunas') ? ('Bayar (' + (_keys[0] || 'Tunai') + ')') : 'Bayar (DP)';
+                        text += alignLR(bayarLabel, "Rp " + parseInt(sale.amount_paid).toLocaleString('id-ID'));
+                    }
                     
                     if (sale.payment_status !== 'lunas') {
                         let sisa = Math.max(0, sale.total_amount - sale.amount_paid);

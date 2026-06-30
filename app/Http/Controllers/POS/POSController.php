@@ -80,7 +80,7 @@ class POSController extends Controller
         $period = $r->input('period', 'today');
         $format = $r->input('format', 'pdf');
 
-        $query = \App\Models\Sale::with(['paymentMethod', 'items'])
+        $query = \App\Models\Sale::with(['paymentMethod', 'items', 'payments.paymentMethod'])
             ->where('store_id', $store->id);
 
         if ($period == 'today') {

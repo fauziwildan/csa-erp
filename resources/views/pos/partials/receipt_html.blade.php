@@ -106,7 +106,15 @@
         <span>TOTAL</span>
         <span>Rp {{ number_format($sale->total_amount, 0, ',', '.') }}</span>
     </div>
-    <div class="row" style="margin-top:8px"><span>Bayar ({{ $sale->payment_status === 'lunas' ? 'Tunai' : 'Uang Muka/DP' }})</span><span>Rp {{ number_format($sale->amount_paid, 0, ',', '.') }}</span></div>
+    @php $breakdown = $sale->paymentBreakdown(); @endphp
+    @if($sale->isSplitPayment())
+    <div class="row bold" style="margin-top:8px"><span>PEMBAYARAN</span><span></span></div>
+    @foreach($breakdown as $pay)
+    <div class="row"><span>&middot; {{ $pay['name'] }}</span><span>Rp {{ number_format($pay['amount'], 0, ',', '.') }}</span></div>
+    @endforeach
+    @else
+    <div class="row" style="margin-top:8px"><span>Bayar ({{ $sale->payment_status === 'lunas' ? ($sale->paymentMethod?->name ?? 'Tunai') : 'Uang Muka/DP' }})</span><span>Rp {{ number_format($sale->amount_paid, 0, ',', '.') }}</span></div>
+    @endif
     @if($sale->payment_status !== 'lunas')
     <div class="row bold" style="color:#dc2626"><span>Sisa Hutang</span><span>Rp {{ number_format(max(0,$sale->total_amount - $sale->amount_paid), 0, ',', '.') }}</span></div>
     @endif

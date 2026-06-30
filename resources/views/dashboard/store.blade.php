@@ -9,6 +9,57 @@
         <h3 class="text-lg font-bold text-gray-800 border-l-4 border-indigo-500 pl-3 uppercase tracking-tight">Ringkasan Finansial Toko Hari Ini</h3>
     </div>
 
+    @php
+        $myStoreIds = auth()->user()->stores->pluck('id');
+        $trfReceive = \App\Models\Transfer::where('status','shipped')->whereIn('to_store_id', $myStoreIds)->count();   // barang masuk → perlu DITERIMA
+        $trfApprove = \App\Models\Transfer::where('status','pending')->whereIn('from_store_id', $myStoreIds)->count(); // permintaan keluar → perlu DISETUJUI
+        $trfShip    = \App\Models\Transfer::where('status','approved')->whereIn('from_store_id', $myStoreIds)->count(); // disetujui → perlu DIKIRIM
+        $trfTotal   = $trfReceive + $trfApprove + $trfShip;
+    @endphp
+
+    {{-- ============ PERLU TINDAKAN: TRANSFER ANTAR TOKO (biar tidak "gaib") ============ --}}
+    @if($trfTotal > 0)
+    <div class="bg-white rounded-2xl border border-indigo-200 shadow-sm overflow-hidden">
+        <div class="bg-indigo-50/60 border-b border-indigo-100 px-5 py-3.5 flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-600 animate-pulse shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            <h4 class="text-sm font-bold text-indigo-900">Perlu Tindakan — Transfer Antar Toko</h4>
+            <span class="ml-auto text-xs bg-indigo-600 text-white px-2.5 py-0.5 rounded-full font-bold">{{ $trfTotal }}</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-gray-100">
+            {{-- Barang masuk: TERIMA (penting — pakai from_store_id kosong agar transfer MASUK ikut tampil) --}}
+            <a href="{{ route('transfers.index', ['status' => 'shipped', 'from_store_id' => '']) }}" class="p-4 flex items-center gap-3 hover:bg-indigo-50/40 transition-colors {{ $trfReceive==0 ? 'opacity-50' : '' }}">
+                <span class="w-11 h-11 rounded-xl bg-green-100 text-green-700 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-3.5l-1 2h-7l-1-2H4"/></svg>
+                </span>
+                <div>
+                    <p class="text-2xl font-black text-gray-900 leading-none">{{ $trfReceive }}</p>
+                    <p class="text-xs text-gray-500 mt-1">Barang masuk → klik <strong class="text-green-700">“Terima”</strong></p>
+                </div>
+            </a>
+            {{-- Permintaan keluar: SETUJUI --}}
+            <a href="{{ route('transfers.index', ['status' => 'pending']) }}" class="p-4 flex items-center gap-3 hover:bg-indigo-50/40 transition-colors {{ $trfApprove==0 ? 'opacity-50' : '' }}">
+                <span class="w-11 h-11 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <div>
+                    <p class="text-2xl font-black text-gray-900 leading-none">{{ $trfApprove }}</p>
+                    <p class="text-xs text-gray-500 mt-1">Permintaan → <strong class="text-amber-700">“Setujui”</strong></p>
+                </div>
+            </a>
+            {{-- Disetujui: KIRIM --}}
+            <a href="{{ route('transfers.index', ['status' => 'approved']) }}" class="p-4 flex items-center gap-3 hover:bg-indigo-50/40 transition-colors {{ $trfShip==0 ? 'opacity-50' : '' }}">
+                <span class="w-11 h-11 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </span>
+                <div>
+                    <p class="text-2xl font-black text-gray-900 leading-none">{{ $trfShip }}</p>
+                    <p class="text-xs text-gray-500 mt-1">Disetujui → <strong class="text-blue-700">“Kirim”</strong></p>
+                </div>
+            </a>
+        </div>
+    </div>
+    @endif
+
     {{-- Pelanggan Jatuh Tempo Card --}}
     @if(isset($approachingDueSales) && $approachingDueSales->count() > 0)
     <div class="bg-white rounded-xl border border-red-200 shadow-sm overflow-hidden mb-6">
@@ -165,7 +216,10 @@
         <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
             @foreach($modules as $m)
                 @can($m['can'])
-                <a href="{{ route($m['route']) }}" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center gap-2.5 text-center hover:-translate-y-1 hover:shadow-md transition-all group">
+                <a href="{{ $m['route'] === 'transfers.index' ? route('transfers.index', ['from_store_id' => '']) : route($m['route']) }}" class="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center gap-2.5 text-center hover:-translate-y-1 hover:shadow-md transition-all group">
+                    @if($m['route'] === 'transfers.index' && $trfTotal > 0)
+                        <span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center shadow">{{ $trfTotal }}</span>
+                    @endif
                     <span class="w-11 h-11 rounded-xl {{ $m['color'] }} flex items-center justify-center group-hover:scale-110 transition-transform">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $m['icon'] }}"/></svg>
                     </span>

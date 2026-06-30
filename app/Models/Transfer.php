@@ -67,4 +67,22 @@ class Transfer extends Model
     public function totalQtyRequested(): int { return $this->items->sum('qty_requested'); }
     public function totalQtySent():      int { return $this->items->sum('qty_sent'); }
     public function totalQtyReceived():  int { return $this->items->sum('qty_received'); }
+
+    /** Admin global (superadmin/owner/admin gudang) atau staf toko yang bersangkutan. */
+    private function isGlobalUser($user): bool
+    {
+        return $user && $user->hasAnyRole(['superadmin', 'owner', 'admin gudang']);
+    }
+
+    /** Hanya toko ASAL (atau admin global) yang boleh mengirim. */
+    public function userCanShip($user): bool
+    {
+        return $this->isGlobalUser($user) || ($user && $user->stores->contains('id', $this->from_store_id));
+    }
+
+    /** Hanya toko TUJUAN (atau admin global) yang boleh menerima. */
+    public function userCanReceive($user): bool
+    {
+        return $this->isGlobalUser($user) || ($user && $user->stores->contains('id', $this->to_store_id));
+    }
 }

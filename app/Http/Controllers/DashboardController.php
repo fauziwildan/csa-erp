@@ -233,17 +233,43 @@ class DashboardController extends Controller
             ->get();
 
         // ── Payment Method Distribution (this month) ─────────
-        $paymentDistribution = Sale::select(
+        // Akurat untuk SPLIT PAYMENT: nominal per metode diambil dari sale_payments
+        // (uang aktual yang diterima per metode), bukan dari metode utama nota.
+        $paySplit = \App\Models\SalePayment::select(
+                'payment_methods.name as method_name',
+                DB::raw('COUNT(DISTINCT sale_payments.sale_id) as total_count'),
+                DB::raw('SUM(sale_payments.amount) as total_amount')
+            )
+            ->join('payment_methods', 'sale_payments.payment_method_id', '=', 'payment_methods.id')
+            ->join('sales', 'sale_payments.sale_id', '=', 'sales.id')
+            ->when($storeId, fn($q) => $q->where('sales.store_id', $storeId))
+            ->whereRaw("DATE_FORMAT(sales.created_at, '%Y-%m') = ?", [$thisMonth])
+            ->groupBy('payment_methods.name')
+            ->get();
+
+        // Nota lama (sebelum fitur split) tanpa baris sale_payments → fallback ke metode utama.
+        $payLegacy = Sale::select(
                 'payment_methods.name as method_name',
                 DB::raw('COUNT(sales.id) as total_count'),
                 DB::raw('SUM(sales.total_amount) as total_amount')
             )
             ->join('payment_methods', 'sales.payment_method_id', '=', 'payment_methods.id')
+            ->whereDoesntHave('payments')
             ->when($storeId, fn($q) => $q->where('sales.store_id', $storeId))
             ->whereRaw("DATE_FORMAT(sales.created_at, '%Y-%m') = ?", [$thisMonth])
             ->groupBy('payment_methods.name')
-            ->orderByDesc('total_count')
             ->get();
+
+        // Gabung kedua sumber per nama metode.
+        $paymentDistribution = $paySplit->concat($payLegacy)
+            ->groupBy('method_name')
+            ->map(fn ($rows, $name) => (object) [
+                'method_name'  => $name,
+                'total_count'  => $rows->sum('total_count'),
+                'total_amount' => $rows->sum('total_amount'),
+            ])
+            ->sortByDesc('total_count')
+            ->values();
 
         // ── Stock Value (reuse FinanceController pattern) ────
         $storeStockValue = Stock::where('location_type', 'store')

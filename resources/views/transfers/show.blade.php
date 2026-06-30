@@ -105,7 +105,7 @@
     @endif
 
     {{-- SHIP FORM — only for approved transfers + permission --}}
-    @if($transfer->isApproved() && auth()->user()->can('request store transfer'))
+    @if($transfer->isApproved() && auth()->user()->can('request store transfer') && $transfer->userCanShip(auth()->user()))
     <form method="POST" action="{{ route('transfers.ship', $transfer) }}" class="space-y-4">
         @csrf
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -143,7 +143,7 @@
             </div>
         </div>
         <div class="flex items-center justify-between">
-            <a href="{{ route('transfers.index') }}" class="text-sm text-gray-600 hover:underline">← Kembali</a>
+            <a href="{{ route('transfers.index', ['from_store_id' => '']) }}" class="text-sm text-gray-600 hover:underline">← Kembali</a>
             <button type="submit"
                 onclick="return confirm('Konfirmasi pengiriman {{ $transfer->transfer_no }}?')"
                 class="bg-orange-600 hover:bg-orange-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm">
@@ -153,7 +153,7 @@
     </form>
 
     {{-- RECEIVE FORM — only for shipped transfers + permission --}}
-    @elseif($transfer->isShipped() && auth()->user()->can('receive transfer'))
+    @elseif($transfer->isShipped() && auth()->user()->can('receive transfer') && $transfer->userCanReceive(auth()->user()))
     <form method="POST" action="{{ route('transfers.receive', $transfer) }}" class="space-y-4">
         @csrf
         <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -191,7 +191,7 @@
             </div>
         </div>
         <div class="flex items-center justify-between">
-            <a href="{{ route('transfers.index') }}" class="text-sm text-gray-600 hover:underline">← Kembali</a>
+            <a href="{{ route('transfers.index', ['from_store_id' => '']) }}" class="text-sm text-gray-600 hover:underline">← Kembali</a>
             <button type="submit"
                 onclick="return confirm('Konfirmasi penerimaan {{ $transfer->transfer_no }}?')"
                 class="bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-2.5 rounded-lg text-sm">
@@ -235,7 +235,7 @@
             </table>
         </div>
     </div>
-    <a href="{{ route('transfers.index') }}" class="text-sm text-gray-600 hover:underline">← Kembali</a>
+    <a href="{{ route('transfers.index', ['from_store_id' => '']) }}" class="text-sm text-gray-600 hover:underline">← Kembali</a>
     @endif
 
 </div>

@@ -43,4 +43,50 @@ class Sale extends Model
     {
         return max(0, (float) $this->total_amount - (float) $this->amount_paid);
     }
+
+    /** True bila nota ini dibayar dengan >1 metode (split payment). */
+    public function isSplitPayment(): bool
+    {
+        return $this->payments->count() > 1;
+    }
+
+    /**
+     * Label metode pembayaran untuk laporan/struk.
+     * - Split  → "Tunai + Transfer Bank"
+     * - Single → nama metode (dari sale_payments bila ada, fallback paymentMethod).
+     */
+    public function paymentMethodLabel(): string
+    {
+        if ($this->payments->isNotEmpty()) {
+            return $this->payments
+                ->map(fn ($p) => $p->paymentMethod?->name ?? '—')
+                ->unique()
+                ->implode(' + ');
+        }
+
+        return $this->paymentMethod?->name ?? '—';
+    }
+
+    /**
+     * Rincian pembayaran per metode (digabung jika metode sama).
+     * Mengembalikan koleksi ['name' => ..., 'amount' => ...].
+     * Fallback ke metode tunggal bila sale_payments belum ada (nota lama).
+     */
+    public function paymentBreakdown()
+    {
+        if ($this->payments->isNotEmpty()) {
+            return $this->payments
+                ->groupBy('payment_method_id')
+                ->map(fn ($group) => [
+                    'name'   => $group->first()->paymentMethod?->name ?? '—',
+                    'amount' => (float) $group->sum('amount'),
+                ])
+                ->values();
+        }
+
+        return collect([[
+            'name'   => $this->paymentMethod?->name ?? '—',
+            'amount' => (float) $this->amount_paid,
+        ]]);
+    }
 }

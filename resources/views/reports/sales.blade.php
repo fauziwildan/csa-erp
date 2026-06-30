@@ -105,7 +105,12 @@
                             <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-3 font-mono text-xs font-semibold text-indigo-600">{{ $sale->sale_no }}</td>
                                 <td class="px-4 py-3 text-xs text-gray-700">{{ $sale?->store?->name }}</td>
-                                <td class="px-4 py-3 text-xs text-gray-500">{{ $sale->paymentMethod?->name ?? '—' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500">
+                                    {{ $sale->paymentMethodLabel() }}
+                                    @if($sale->isSplitPayment())
+                                        <span class="ml-1 inline-block text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Split</span>
+                                    @endif
+                                </td>
                                 <td class="px-4 py-3 text-right text-xs text-gray-700">{{ $sale->items->sum('qty') }}</td>
                                 <td class="px-4 py-3 text-right text-xs font-semibold text-gray-800">Rp
                                     {{ number_format($sale->total_amount, 0, ',', '.') }}</td>
@@ -173,7 +178,7 @@
                                 </div>
                                 <div class="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Metode</p>
-                                    <p class="text-sm font-bold text-gray-800" x-text="sale?.payment_method?.name"></p>
+                                    <p class="text-sm font-bold text-gray-800" x-text="paymentLabel()"></p>
                                 </div>
                                 <div class="p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
                                     <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tanggal
@@ -252,6 +257,16 @@
                                         <span class="text-lg font-black text-indigo-600"
                                             x-text="formatCurrency(sale?.total_amount)"></span>
                                     </div>
+                                    <!-- Rincian Pembayaran (split / per metode) -->
+                                    <div x-show="paymentRows().length" class="pt-3 mt-1 border-t border-dashed border-gray-200 space-y-1">
+                                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Rincian Pembayaran</p>
+                                        <template x-for="(row, idx) in paymentRows()" :key="idx">
+                                            <div class="flex justify-between text-xs">
+                                                <span class="text-gray-500" x-text="row.name"></span>
+                                                <span class="font-semibold text-gray-700" x-text="formatCurrency(row.amount)"></span>
+                                            </div>
+                                        </template>
+                                    </div>
                                     <div class="pt-4 space-y-1">
                                         <div
                                             class="flex justify-between text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -302,6 +317,22 @@
                     formatCurrency(val) {
                         if (!val) return 'Rp 0';
                         return 'Rp ' + Number(val).toLocaleString('id-ID');
+                    },
+                    paymentRows() {
+                        // Gabung pembayaran per metode (split → beberapa baris).
+                        const pays = this.sale?.payments || [];
+                        if (!pays.length) return [];
+                        const map = {};
+                        pays.forEach(p => {
+                            const name = p.payment_method?.name || '—';
+                            map[name] = (map[name] || 0) + Number(p.amount || 0);
+                        });
+                        return Object.keys(map).map(name => ({ name, amount: map[name] }));
+                    },
+                    paymentLabel() {
+                        const rows = this.paymentRows();
+                        if (rows.length) return rows.map(r => r.name).join(' + ');
+                        return this.sale?.payment_method?.name || '—';
                     },
                     formatDate(dateStr) {
                         if (!dateStr) return '-';

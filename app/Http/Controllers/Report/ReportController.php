@@ -27,7 +27,7 @@ class ReportController extends Controller
         $user   = Auth::user();
         $stores = $user->hasAnyRole(['superadmin', 'owner', 'finance']) ? Store::orderBy('name')->get() : collect();
 
-        $q = Sale::with(['store', 'paymentMethod', 'items'])
+        $q = Sale::with(['store', 'paymentMethod', 'items', 'payments.paymentMethod'])
             ->when($r->store_id,  fn($q) => $q->where('store_id', $r->store_id))
             ->when($r->date_from, fn($q) => $q->whereDate('created_at', '>=', $r->date_from))
             ->when($r->date_to,   fn($q) => $q->whereDate('created_at', '<=', $r->date_to))
@@ -289,6 +289,7 @@ class ReportController extends Controller
         $sale->load([
             'store',
             'paymentMethod',
+            'payments.paymentMethod',
             'creator',
             'items.variant.product',
             'items.variant.color',

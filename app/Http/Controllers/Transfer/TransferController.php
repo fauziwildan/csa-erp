@@ -22,11 +22,9 @@ class TransferController extends Controller
         $user   = Auth::user();
         $stores = Store::orderBy('name')->get();
 
+        // Tidak lagi auto-kunci ke toko sendiri — biar transfer MASUK (toko tujuan = toko kita) ikut tampil.
+        // Pembatasan ke toko user tetap ditangani oleh scope di bawah (from ATAU to ∈ toko user).
         $fromStoreId = $r->get('from_store_id');
-        // Jika belum ada filter dan user punya toko primer, default ke toko tersebut
-        if (!$r->has('from_store_id') && $user->primaryStore()) {
-            $fromStoreId = $user->primaryStore()->id;
-        }
 
         $q = Transfer::with(['fromStore', 'toStore', 'items'])
             ->when($fromStoreId, fn($q) => $q->where('from_store_id', $fromStoreId))
@@ -125,7 +123,7 @@ class TransferController extends Controller
 
         AuditLogService::log('approve', 'Transfer', "Setujui {$transfer->transfer_no}", null, null, Transfer::class, $transfer->id);
 
-        return back()->with('success', 'Transfer disetujui. Toko asal dapat memproses pengiriman.');
+        return redirect()->route('transfers.show', $transfer)->with('success', 'Transfer disetujui. Toko asal dapat memproses pengiriman.');
     }
 
     public function reject(Request $r, Transfer $transfer)
@@ -147,7 +145,7 @@ class TransferController extends Controller
 
         AuditLogService::log('reject', 'Transfer', "Tolak {$transfer->transfer_no}", null, null, Transfer::class, $transfer->id);
 
-        return back()->with('success', 'Transfer ditolak.');
+        return redirect()->route('transfers.show', $transfer)->with('success', 'Transfer ditolak.');
     }
 
     public function ship(Request $r, Transfer $transfer)
@@ -155,9 +153,7 @@ class TransferController extends Controller
         $this->authorize('request store transfer');
 
         // Pengiriman hanya boleh dilakukan oleh pihak toko asal (kecuali admin global).
-        $user = Auth::user();
-        if (! $user->hasAnyRole(['superadmin', 'owner', 'admin gudang'])
-            && ! $user->stores()->where('stores.id', $transfer->from_store_id)->exists()) {
+        if (! $transfer->userCanShip(Auth::user())) {
             abort(403, 'Hanya toko asal yang dapat mengirim transfer ini.');
         }
 
@@ -207,7 +203,7 @@ class TransferController extends Controller
             });
 
             AuditLogService::log('ship', 'Transfer', "Kirim {$transfer->transfer_no}", null, null, Transfer::class, $transfer->id);
-            return back()->with('success', 'Transfer dikirim. Stok toko asal sudah dikurangi.');
+            return redirect()->route('transfers.show', $transfer)->with('success', 'Transfer dikirim. Stok toko asal sudah dikurangi.');
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -216,6 +212,11 @@ class TransferController extends Controller
     public function receive(Request $r, Transfer $transfer)
     {
         $this->authorize('receive transfer');
+
+        // Penerimaan hanya boleh oleh toko TUJUAN (atau admin global), bukan pengirim.
+        if (! $transfer->userCanReceive(Auth::user())) {
+            abort(403, 'Hanya toko tujuan yang dapat menerima transfer ini.');
+        }
 
         if (!$transfer->isShipped()) {
             return back()->with('error', 'Transfer belum dikirim.');
@@ -279,7 +280,7 @@ class TransferController extends Controller
             });
 
             AuditLogService::log('receive', 'Transfer', "Terima {$transfer->transfer_no}", null, null, Transfer::class, $transfer->id);
-            return back()->with('success', 'Transfer diterima. Stok toko tujuan sudah ditambahkan.');
+            return redirect()->route('transfers.show', $transfer)->with('success', 'Transfer diterima. Stok toko tujuan sudah ditambahkan.');
         } catch (\RuntimeException $e) {
             return back()->with('error', $e->getMessage());
         }

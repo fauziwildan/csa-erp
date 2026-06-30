@@ -193,40 +193,54 @@
 
     {{-- ============ MENU MODUL (navigasi kepala toko, pengganti sidebar) ============ --}}
     <div>
-        <h3 class="text-lg font-bold text-gray-800 border-l-4 border-indigo-500 pl-3 mb-3">Menu</h3>
+        <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider border-l-4 border-indigo-500 pl-3 mb-4">Menu Utama</h3>
         @php
             $modules = [
-                ['can'=>'access pos','route'=>'pos.index','label'=>'Kasir / POS','color'=>'bg-indigo-100 text-indigo-700','icon'=>'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z'],
-                ['can'=>'view catalog','route'=>'catalog.index','label'=>'Katalog','color'=>'bg-blue-100 text-blue-700','icon'=>'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
-                ['can'=>'view store','route'=>'store.stock.index','label'=>'Stok Toko','color'=>'bg-emerald-100 text-emerald-700','icon'=>'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'],
-                ['can'=>'receive store shipment','route'=>'store.receiving.index','label'=>'Terima Kiriman','color'=>'bg-cyan-100 text-cyan-700','icon'=>'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-3.5l-1 2h-7l-1-2H4'],
-                ['can'=>'view stock opname','route'=>'store.opname.index','label'=>'Stock Opname','color'=>'bg-amber-100 text-amber-700','icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
-                ['can'=>'view customers','route'=>'customers.index','label'=>'Pelanggan','color'=>'bg-purple-100 text-purple-700','icon'=>'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 00-3-3.87'],
-                ['can'=>'approve credit','route'=>'credit-approvals.index','label'=>'Persetujuan Kredit','color'=>'bg-rose-100 text-rose-700','icon'=>'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
-                ['can'=>'view transfer','route'=>'transfers.index','label'=>'Transfer Toko','color'=>'bg-orange-100 text-orange-700','icon'=>'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'],
-                ['can'=>'view customer return','route'=>'returns.customer.index','label'=>'Retur','color'=>'bg-red-100 text-red-700','icon'=>'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6'],
-                ['can'=>'view settlement','route'=>'settlements.index','label'=>'Settlement','color'=>'bg-teal-100 text-teal-700','icon'=>'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
-                ['can'=>'view report','route'=>'reports.index','label'=>'Laporan','color'=>'bg-yellow-100 text-yellow-700','icon'=>'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-                ['can'=>'view expenses','route'=>'expenses.index','label'=>'Pengeluaran','color'=>'bg-pink-100 text-pink-700','icon'=>'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
-                ['can'=>'print product label','route'=>'labels.picker','label'=>'Cetak Label','color'=>'bg-slate-100 text-slate-700','icon'=>'M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a1 1 0 001-1v-4a1 1 0 00-1-1H9a1 1 0 00-1 1v4a1 1 0 001 1zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h14z'],
-                ['can'=>'view product','route'=>'products.index','label'=>'Produk & SKU','color'=>'bg-violet-100 text-violet-700','icon'=>'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
-                ['can'=>'view pos','route'=>'pos.history','label'=>'Riwayat Transaksi','color'=>'bg-gray-100 text-gray-700','icon'=>'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
+                ['can'=>'access pos','route'=>'pos.index','label'=>'Kasir / POS','desc'=>'Transaksi penjualan','color'=>'bg-indigo-100 text-indigo-700','icon'=>'M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 11h.01M12 11h.01M15 11h.01M4 19h16a2 2 0 002-2V7a2 2 0 00-2-2H4a2 2 0 00-2 2v10a2 2 0 002 2z'],
+                ['can'=>'view catalog','route'=>'catalog.index','label'=>'Katalog','desc'=>'Kelola produk','color'=>'bg-blue-100 text-blue-700','icon'=>'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
+                ['can'=>'view store','route'=>'store.stock.index','label'=>'Stok Toko','desc'=>'Inventori & stok','color'=>'bg-emerald-100 text-emerald-700','icon'=>'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'],
+                ['can'=>'receive store shipment','route'=>'store.receiving.index','label'=>'Terima Kiriman','desc'=>'Penerimaan barang','color'=>'bg-cyan-100 text-cyan-700','icon'=>'M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-3.5l-1 2h-7l-1-2H4'],
+                ['can'=>'view stock opname','route'=>'store.opname.index','label'=>'Stock Opname','desc'=>'Hitung stok fisik','color'=>'bg-amber-100 text-amber-700','icon'=>'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
+                ['can'=>'view customers','route'=>'customers.index','label'=>'Pelanggan','desc'=>'Data pelanggan','color'=>'bg-purple-100 text-purple-700','icon'=>'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 00-3-3.87'],
+                ['can'=>'approve credit','route'=>'credit-approvals.index','label'=>'Persetujuan Kredit','desc'=>'Review kredit','color'=>'bg-rose-100 text-rose-700','icon'=>'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
+                ['can'=>'view transfer','route'=>'transfers.index','label'=>'Transfer Toko','desc'=>'Kirim antar toko','color'=>'bg-orange-100 text-orange-700','icon'=>'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4'],
+                ['can'=>'view customer return','route'=>'returns.customer.index','label'=>'Retur','desc'=>'Retur barang','color'=>'bg-red-100 text-red-700','icon'=>'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6'],
+                ['can'=>'view settlement','route'=>'settlements.index','label'=>'Settlement','desc'=>'Setoran ke owner','color'=>'bg-teal-100 text-teal-700','icon'=>'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
+                ['can'=>'view report','route'=>'reports.index','label'=>'Laporan','desc'=>'Laporan keuangan','color'=>'bg-yellow-100 text-yellow-700','icon'=>'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
+                ['can'=>'view expenses','route'=>'expenses.index','label'=>'Pengeluaran','desc'=>'Catat pengeluaran','color'=>'bg-pink-100 text-pink-700','icon'=>'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
+                ['can'=>'print product label','route'=>'labels.picker','label'=>'Cetak Label','desc'=>'Barcode & label','color'=>'bg-slate-100 text-slate-700','icon'=>'M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a1 1 0 001-1v-4a1 1 0 00-1-1H9a1 1 0 00-1 1v4a1 1 0 001 1zm8-12V5a2 2 0 00-2-2H7a2 2 0 00-2 2v4h14z'],
+                ['can'=>'view product','route'=>'products.index','label'=>'Produk & SKU','desc'=>'Kelola SKU produk','color'=>'bg-violet-100 text-violet-700','icon'=>'M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
+                ['can'=>'view pos','route'=>'pos.history','label'=>'Riwayat Transaksi','desc'=>'Log transaksi','color'=>'bg-gray-100 text-gray-700','icon'=>'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
             ];
         @endphp
-        <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
             @foreach($modules as $m)
                 @can($m['can'])
-                <a href="{{ $m['route'] === 'transfers.index' ? route('transfers.index', ['from_store_id' => '']) : route($m['route']) }}" class="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col items-center justify-center gap-2.5 text-center hover:-translate-y-1 hover:shadow-md transition-all group">
+                <a href="{{ $m['route'] === 'transfers.index' ? route('transfers.index', ['from_store_id' => '']) : route($m['route']) }}" class="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 flex flex-col items-center justify-center text-center gap-2.5 min-h-[118px] sm:min-h-[128px] hover:-translate-y-1 hover:shadow-md hover:border-indigo-200 transition-all group">
                     @if($m['route'] === 'transfers.index' && $trfTotal > 0)
-                        <span class="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold min-w-[18px] h-[18px] px-1 rounded-full flex items-center justify-center shadow">{{ $trfTotal }}</span>
+                        <span class="absolute top-3 right-3 bg-red-500 text-white text-[10px] font-bold min-w-[20px] h-5 px-1 rounded-full flex items-center justify-center shadow">{{ $trfTotal }}</span>
                     @endif
-                    <span class="w-11 h-11 rounded-xl {{ $m['color'] }} flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $m['icon'] }}"/></svg>
+                    <span class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl {{ $m['color'] }} flex items-center justify-center group-hover:scale-105 transition-transform">
+                        <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="{{ $m['icon'] }}"/></svg>
                     </span>
-                    <span class="text-[11px] font-semibold text-gray-700 leading-tight">{{ $m['label'] }}</span>
+                    <div>
+                        <p class="text-sm font-bold text-gray-800 leading-tight">{{ $m['label'] }}</p>
+                        <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">{{ $m['desc'] }}</p>
+                    </div>
                 </a>
                 @endcan
             @endforeach
+
+            {{-- Placeholder modul mendatang --}}
+            <div class="relative bg-gray-50/60 rounded-2xl border border-dashed border-gray-200 p-4 sm:p-5 flex flex-col items-center justify-center text-center gap-2.5 min-h-[118px] sm:min-h-[128px] cursor-default select-none">
+                <span class="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-indigo-50 text-indigo-400 flex items-center justify-center">
+                    <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+                </span>
+                <div>
+                    <p class="text-sm font-bold text-indigo-400 leading-tight">Menu Lainnya</p>
+                    <p class="text-[11px] text-gray-400 mt-0.5 leading-tight">Segera hadir</p>
+                </div>
+            </div>
         </div>
     </div>
 

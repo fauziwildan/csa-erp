@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — SevenKey ERP</title>
+    @include('partials.favicons')
 
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
@@ -71,12 +72,12 @@
         /* ===================== LOGO / BRAND ===================== */
         .brand{ text-align:center; margin-bottom:30px; padding-top:4px; animation:fade .9s ease both; }
         .logo-badge{
-            position:relative; width:58px; height:58px; margin:0 auto 22px; border-radius:18px;
-            display:flex; align-items:center; justify-content:center;
-            font-weight:800; font-size:21px; color:#fff; letter-spacing:-1px;
-            background:linear-gradient(150deg,var(--primary),var(--primary-2));
+            position:relative; width:64px; height:64px; margin:0 auto 22px; border-radius:18px;
+            display:flex; align-items:center; justify-content:center; overflow:hidden;
+            background:#fff;
             box-shadow:0 10px 28px -8px rgba(91,94,246,.7), inset 0 1px 0 rgba(255,255,255,.45);
         }
+        .logo-badge img{ width:100%; height:100%; object-fit:cover; border-radius:18px; }
         .logo-badge::after{ /* glow behind icon */
             content:""; position:absolute; inset:-30%; z-index:-1; border-radius:50%;
             background:radial-gradient(circle,rgba(91,94,246,.45),transparent 70%); filter:blur(20px);
@@ -220,7 +221,7 @@
 
             {{-- Logo --}}
             <div class="brand">
-                <div class="logo-badge">7K</div>
+                <div class="logo-badge"><img src="{{ asset('icons/logo.png') }}" alt="SevenKey"></div>
                 <h1>SevenKey <b>ERP</b></h1>
                 <p>Fashion Retail Management Platform</p>
                 <span class="badge">

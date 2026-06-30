@@ -62,7 +62,23 @@ class PaymentMethodController extends Controller
     public function destroy(PaymentMethod $paymentMethod)
     {
         $this->authorize('delete master');
-        $paymentMethod->delete();
+
+        // Tidak boleh dihapus jika sudah dipakai pada transaksi (akan melanggar foreign key).
+        $usageCount = \App\Models\Sale::where('payment_method_id', $paymentMethod->id)->count()
+            + \App\Models\SalePayment::where('payment_method_id', $paymentMethod->id)->count();
+
+        if ($usageCount > 0) {
+            return redirect()->route('master.payment-methods.index')
+                ->with('error', "Metode \"{$paymentMethod->name}\" tidak dapat dihapus karena sudah dipakai pada {$usageCount} transaksi. Buka Edit lalu hilangkan centang \"Aktif\" agar tidak muncul di kasir tanpa menghapus riwayat.");
+        }
+
+        try {
+            $paymentMethod->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('master.payment-methods.index')
+                ->with('error', "Metode \"{$paymentMethod->name}\" tidak dapat dihapus karena masih terkait data lain. Nonaktifkan saja.");
+        }
+
         return redirect()->route('master.payment-methods.index')->with('success', 'Metode pembayaran berhasil dihapus.');
     }
 }

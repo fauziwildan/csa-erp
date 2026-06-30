@@ -17,6 +17,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Dashboard') — SevenKey ERP</title>
+    @include('partials.favicons')
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -133,7 +134,7 @@
         {{-- Logo --}}
         <div class="flex items-center justify-between h-16 px-4 border-b border-gray-800 bg-gray-950 shrink-0">
             <a href="{{ route('dashboard') }}" class="flex items-center gap-2">
-                <div class="flex items-center justify-center w-8 h-8 text-sm font-bold bg-indigo-500 rounded-lg shrink-0">7K</div>
+                <img src="{{ asset('icons/logo.png') }}" alt="SevenKey" class="w-8 h-8 rounded-lg shrink-0 object-contain">
                 <span class="text-lg font-bold tracking-tight">SevenKey ERP</span>
             </a>
             <button @click="sidebarOpen = false" class="text-gray-400 lg:hidden hover:text-white">
@@ -449,7 +450,7 @@
             @if($hideNavigation && !$isCashier && !$isKiosk)
             <a href="{{ route('dashboard') }}" title="Menu Utama"
                class="inline-flex items-center gap-2 pl-1.5 pr-3 py-1.5 rounded-xl hover:bg-gray-100 transition-colors">
-                <span class="flex items-center justify-center w-7 h-7 text-[11px] font-extrabold text-white rounded-lg" style="background:linear-gradient(135deg,#5B5EF6,#7D82FF)">7K</span>
+                <img src="{{ asset('icons/logo.png') }}" alt="SevenKey" class="w-7 h-7 rounded-lg object-contain">
                 <span class="hidden sm:block text-sm font-bold text-gray-700">Menu</span>
             </a>
             @endif

@@ -17,8 +17,8 @@ class PublicCatalogController extends Controller
         $brand = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $brand));
 
         // Cache array biasa (bukan object Collection) agar aman di-serialize/unserialize.
-        $items = Cache::remember("public_catalog_{$brand}", 60, function () use ($brand) {
-            return DB::table('products as p')
+        $payload = Cache::remember("public_catalog_{$brand}", 60, function () use ($brand) {
+            $items = DB::table('products as p')
                 ->join('brands as b', 'p.brand_id', '=', 'b.id')
                 ->join('product_variants as pv', 'pv.product_id', '=', 'p.id')
                 ->join('colors as c', 'pv.color_id', '=', 'c.id')
@@ -39,14 +39,30 @@ class PublicCatalogController extends Controller
                 ->get()
                 ->map(fn ($r) => (array) $r)
                 ->all();
+
+            // Semua gambar (galeri) tiap produk → untuk slider di katalog
+            $productIds = array_values(array_unique(array_column($items, 'product_id')));
+            $imagesByProduct = [];
+            if ($productIds) {
+                $imgs = DB::table('product_images')
+                    ->whereIn('product_id', $productIds)
+                    ->orderByDesc('is_primary')->orderBy('sort_order')
+                    ->get(['product_id', 'path']);
+                foreach ($imgs as $im) {
+                    $imagesByProduct[(int) $im->product_id][] = $im->path;
+                }
+            }
+
+            return ['items' => $items, 'images' => $imagesByProduct];
         });
 
         return response()
             ->json([
                 'brand'        => $brand,
                 'generated_at' => now()->toIso8601String(),
-                'count'        => count($items),
-                'items'        => $items,
+                'count'        => count($payload['items']),
+                'items'        => $payload['items'],
+                'images'       => (object) $payload['images'],
             ])
             ->header('Access-Control-Allow-Origin', '*'); // izinkan diakses lintas domain
     }

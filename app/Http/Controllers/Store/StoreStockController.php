@@ -32,7 +32,7 @@ class StoreStockController extends Controller
             }
         }
 
-        $query = Stock::with(['variant.product.brand', 'variant.color', 'variant.size'])
+        $query = Stock::with(['variant.product.brand', 'variant.product.images', 'variant.image', 'variant.color', 'variant.size'])
             ->where('location_type', 'store')
             ->where('location_id', $storeId)
             ->where('qty', '>', 0)

@@ -29,7 +29,7 @@ class WarehouseStockController extends Controller
             $warehouseId = $warehouses->first()?->id;
         }
 
-        $query = Stock::with(['variant.product.brand', 'variant.color', 'variant.size'])
+        $query = Stock::with(['variant.product.brand', 'variant.product.images', 'variant.image', 'variant.color', 'variant.size'])
             ->where('location_type', 'warehouse')
             ->where('location_id', $warehouseId)
             ->where('qty', '>', 0)

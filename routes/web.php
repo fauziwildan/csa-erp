@@ -19,6 +19,10 @@ use Illuminate\Support\Facades\Route;
 // Root
 Route::get('/', fn() => redirect()->route('dashboard'));
 
+// Public read-only API untuk landing page katalog eksternal (mis. catalog.wonderkey.store)
+Route::get('/api/catalog/{brand?}', [\App\Http\Controllers\Api\PublicCatalogController::class, 'index'])
+    ->name('api.public.catalog');
+
 // Authenticated routes
 Route::middleware(['auth', 'active.user'])->group(function () {
 

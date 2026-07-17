@@ -264,6 +264,20 @@
             </a>
             @endcan
 
+            @can('view online order')
+            @php
+                $pendingOnline = \App\Models\OnlineOrder::where('status', 'pending')->count();
+            @endphp
+            <a href="{{ route('online-orders.index') }}"
+                class="flex items-center gap-3 px-3 py-2 rounded-lg font-medium transition-colors {{ request()->routeIs('online-orders.*') ? 'bg-indigo-600 text-white' : 'text-gray-300 hover:bg-gray-800 hover:text-white' }}">
+                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 21a1 1 0 100-2 1 1 0 000 2zm11 0a1 1 0 100-2 1 1 0 000 2zM1 1h4l2.7 13.4a2 2 0 002 1.6h9.7a2 2 0 002-1.6L23 6H6"/></svg>
+                Pesanan Online
+                @if($pendingOnline > 0)
+                <span class="ml-auto bg-yellow-400 text-gray-900 text-xs font-bold px-2 py-0.5 rounded-full">{{ $pendingOnline }}</span>
+                @endif
+            </a>
+            @endcan
+
             @can('approve credit')
             @php
                 $pendingCredit = \App\Models\Sale::where('approval_status', 'pending')

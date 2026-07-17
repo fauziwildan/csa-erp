@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\CustomerReturn;
 use App\Models\Inbound;
+use App\Models\OnlineOrder;
 use App\Models\Sale;
 use App\Models\Shipment;
 use App\Models\StockOpname;
@@ -13,6 +14,16 @@ use Illuminate\Support\Facades\DB;
 
 class ReferenceNumberService
 {
+    /**
+     * Generate: WKO-YYYYMM-NNNN (pesanan online dari katalog)
+     */
+    public static function onlineOrder(): string
+    {
+        return self::generate('WKO', fn($prefix) =>
+            OnlineOrder::where('order_no', 'like', "{$prefix}%")->max('order_no')
+        );
+    }
+
     /**
      * Generate: INB-YYYYMM-NNNN
      */

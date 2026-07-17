@@ -14,6 +14,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'active.user' => \App\Http\Middleware\EnsureUserIsActive::class,
         ]);
+
+        // Endpoint order dari landing page katalog (server-to-server, diamankan token).
+        $middleware->validateCsrfTokens(except: [
+            'api/catalog/order',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -3,6 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\OnlineOrder;
+use App\Models\ProductVariant;
+use App\Models\Stock;
+use App\Models\Warehouse;
+use App\Services\ReferenceNumberService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
@@ -65,5 +71,107 @@ class PublicCatalogController extends Controller
                 'images'       => (object) $payload['images'],
             ])
             ->header('Access-Control-Allow-Origin', '*'); // izinkan diakses lintas domain
+    }
+
+    /**
+     * Terima pesanan dari landing page katalog (server-to-server, diamankan token).
+     * Order disimpan status "pending" — stok BARU dipotong saat superadmin konfirmasi bayar.
+     */
+    public function storeOrder(Request $request)
+    {
+        $token = config('services.catalog.token');
+        if (empty($token)) {
+            return response()->json(['message' => 'Endpoint order belum dikonfigurasi (CATALOG_API_TOKEN kosong).'], 503);
+        }
+        if (! hash_equals((string) $token, (string) $request->header('X-Catalog-Token'))) {
+            return response()->json(['message' => 'Token tidak valid.'], 401);
+        }
+
+        $data = $request->validate([
+            'customer_name'  => 'required|string|max:150',
+            'customer_phone' => 'nullable|string|max:30',
+            'address'        => 'required|string|max:1000',
+            'notes'          => 'nullable|string|max:500',
+            'items'          => 'required|array|min:1|max:50',
+            'items.*.sku'    => 'required|string|max:100',
+            'items.*.qty'    => 'required|integer|min:1|max:999',
+        ]);
+
+        $warehouse = Warehouse::where('is_active', true)->orderBy('id')->first();
+        if (! $warehouse) {
+            return response()->json(['message' => 'Gudang aktif tidak tersedia.'], 422);
+        }
+
+        try {
+            $order = DB::transaction(function () use ($data, $warehouse) {
+                $order = OnlineOrder::create([
+                    'order_no'       => ReferenceNumberService::onlineOrder(),
+                    'customer_name'  => $data['customer_name'],
+                    'customer_phone' => $data['customer_phone'] ?? null,
+                    'address'        => $data['address'],
+                    'notes'          => $data['notes'] ?? null,
+                    'warehouse_id'   => $warehouse->id,
+                    'status'         => 'pending',
+                    'payment_note'   => 'Transfer saat barang sampai',
+                    'source'         => 'catalog',
+                ]);
+
+                $total = 0;
+                $totalQty = 0;
+
+                foreach ($data['items'] as $row) {
+                    $variant = ProductVariant::with(['product', 'color', 'size'])
+                        ->where('sku', $row['sku'])->first();
+                    if (! $variant) {
+                        throw new \RuntimeException("SKU {$row['sku']} tidak ditemukan.");
+                    }
+
+                    $qty = (int) $row['qty'];
+                    $stock = Stock::where('product_variant_id', $variant->id)
+                        ->where('location_type', 'warehouse')
+                        ->where('location_id', $warehouse->id)
+                        ->value('qty') ?? 0;
+                    if ($stock < $qty) {
+                        throw new \RuntimeException("Stok {$variant->sku} tidak cukup (tersisa {$stock}).");
+                    }
+
+                    // Harga diambil dari DB — tidak mempercayai harga kiriman client.
+                    $price = $variant->sellPrice();
+                    $sub   = $price * $qty;
+
+                    $order->items()->create([
+                        'product_variant_id' => $variant->id,
+                        'sku'                => $variant->sku,
+                        'product_name'       => $variant->product->name,
+                        'color'              => $variant->color?->name,
+                        'size'               => $variant->size?->name,
+                        'qty'                => $qty,
+                        'unit_price'         => $price,
+                        'subtotal'           => $sub,
+                    ]);
+
+                    $total += $sub;
+                    $totalQty += $qty;
+                }
+
+                $order->update(['total_amount' => $total, 'total_qty' => $totalQty]);
+
+                return $order->fresh('items');
+            });
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'order_no'     => $order->order_no,
+            'total_amount' => (float) $order->total_amount,
+            'total_qty'    => $order->total_qty,
+            'items'        => $order->items->map(fn ($i) => [
+                'sku' => $i->sku, 'product_name' => $i->product_name,
+                'color' => $i->color, 'size' => $i->size,
+                'qty' => $i->qty, 'unit_price' => (float) $i->unit_price,
+                'subtotal' => (float) $i->subtotal,
+            ]),
+        ], 201);
     }
 }

@@ -95,6 +95,10 @@ class RolePermissionSeeder extends Seeder
             'update expenses',
             'delete expenses',
 
+            // Pesanan online (landing page katalog)
+            'view online order',
+            'manage online order',
+
             // Settings (kredit global, dll)
             'manage settings',
 
@@ -148,6 +152,8 @@ class RolePermissionSeeder extends Seeder
             'update expenses',
             'delete expenses',
             'create local stock entry',
+            'view online order',
+            'manage online order',
             'manage settings',
             'view customers',
             'manage customers',

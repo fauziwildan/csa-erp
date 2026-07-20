@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    // Landing page katalog (catalog.wonderkey.store) — token untuk kirim order ke ERP.
+    'catalog' => [
+        'token' => env('CATALOG_API_TOKEN'),
+    ],
+
 ];

@@ -4,7 +4,7 @@
     "description": "Fashion Retail Management Platform",
     "start_url": "/",
     "scope": "/",
-    "display": "standalone",
+    "display": "fullscreen",
     "background_color": "#EEF1FF",
     "theme_color": "#5B5EF6",
     "icons": [

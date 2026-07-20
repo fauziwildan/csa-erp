@@ -19,7 +19,10 @@ use Illuminate\Support\Facades\Route;
 // Root
 Route::get('/', fn() => redirect()->route('dashboard'));
 
-// Public read-only API untuk landing page katalog eksternal (mis. catalog.wonderkey.store)
+// Public API untuk landing page katalog eksternal (mis. catalog.wonderkey.store)
+// Terima pesanan (server-to-server, diamankan token) — didaftarkan sebelum route GET.
+Route::post('/api/catalog/order', [\App\Http\Controllers\Api\PublicCatalogController::class, 'storeOrder'])
+    ->name('api.public.catalog.order');
 Route::get('/api/catalog/{brand?}', [\App\Http\Controllers\Api\PublicCatalogController::class, 'index'])
     ->name('api.public.catalog');
 
@@ -267,6 +270,15 @@ Route::middleware(['auth', 'active.user'])->group(function () {
     Route::middleware('can:manage settings')->prefix('settings')->name('settings.')->group(function () {
         Route::get('/credit', [App\Http\Controllers\SettingController::class, 'credit'])->name('credit');
         Route::put('/credit', [App\Http\Controllers\SettingController::class, 'updateCredit'])->name('credit.update');
+    });
+
+    // Pesanan online dari landing page katalog
+    Route::prefix('online-orders')->name('online-orders.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Admin\OnlineOrderController::class, 'index'])->name('index');
+        Route::get('/{onlineOrder}', [App\Http\Controllers\Admin\OnlineOrderController::class, 'show'])->name('show');
+        Route::get('/{onlineOrder}/resi', [App\Http\Controllers\Admin\OnlineOrderController::class, 'resi'])->name('resi');
+        Route::post('/{onlineOrder}/pay', [App\Http\Controllers\Admin\OnlineOrderController::class, 'pay'])->name('pay');
+        Route::post('/{onlineOrder}/cancel', [App\Http\Controllers\Admin\OnlineOrderController::class, 'cancel'])->name('cancel');
     });
 
     // Administration

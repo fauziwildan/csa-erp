@@ -144,6 +144,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::post('/{transfer}/ship', [App\Http\Controllers\Transfer\TransferController::class, 'ship'])->name('ship');
         Route::post('/{transfer}/receive', [App\Http\Controllers\Transfer\TransferController::class, 'receive'])->name('receive');
         Route::get('/{transfer}/print', [App\Http\Controllers\Transfer\TransferController::class, 'printDoc'])->name('print');
+        Route::delete('/{transfer}', [App\Http\Controllers\Transfer\TransferController::class, 'destroy'])->name('destroy');
     });
 
     // POS

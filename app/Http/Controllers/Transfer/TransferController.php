@@ -296,4 +296,32 @@ class TransferController extends Controller
 
         return view('transfers.print', compact('transfer'));
     }
+
+    /**
+     * Hapus (soft delete) log transfer agar daftar tidak terlalu padat.
+     * Data pergerakan stok (stock_ledgers) TETAP tersimpan — ini hanya menyembunyikan
+     * catatan transfer dari daftar, bukan membalikkan stok.
+     */
+    public function destroy(Transfer $transfer)
+    {
+        $this->authorize('delete transfer');
+
+        // Kepala toko hanya boleh menghapus transfer yang melibatkan tokonya.
+        $user = Auth::user();
+        if (! $user->hasAnyRole(['superadmin', 'owner', 'admin gudang'])) {
+            $storeIds = $user->stores->pluck('id');
+            if (! $storeIds->contains($transfer->from_store_id) && ! $storeIds->contains($transfer->to_store_id)) {
+                abort(403, 'Anda tidak berhak menghapus transfer ini.');
+            }
+        }
+
+        // Item TransferItem tidak pakai soft delete, jadi cukup soft-delete transfer-nya
+        // (item tetap tersimpan; transfer bisa dipulihkan utuh bila perlu).
+        AuditLogService::log('delete', 'Transfer', "Hapus log transfer {$transfer->transfer_no}",
+            $transfer->toArray(), null, Transfer::class, $transfer->id);
+
+        $transfer->delete(); // soft delete
+
+        return redirect()->route('transfers.index')->with('success', "Log transfer {$transfer->transfer_no} dihapus dari daftar.");
+    }
 }

@@ -78,8 +78,16 @@
                         </td>
                         <td class="px-4 py-3 text-right text-xs text-gray-700">{{ $t->items->sum('qty_requested') }}</td>
                         <td class="px-4 py-3 text-xs text-gray-400">{{ $t->created_at->format('d/m/Y H:i') }}</td>
-                        <td class="px-4 py-3 text-right">
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
                             <a href="{{ route('transfers.show', $t) }}" class="text-xs text-indigo-600 hover:underline">Detail</a>
+                            @can('delete transfer')
+                            <form method="POST" action="{{ route('transfers.destroy', $t) }}" class="inline"
+                                onsubmit="return confirm('Hapus log transfer {{ $t->transfer_no }} dari daftar? (data pergerakan stok tetap tersimpan)')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-xs text-red-500 hover:text-red-700 hover:underline ml-2">Hapus</button>
+                            </form>
+                            @endcan
                         </td>
                     </tr>
                     @empty

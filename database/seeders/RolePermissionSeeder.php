@@ -57,6 +57,7 @@ class RolePermissionSeeder extends Seeder
             'view transfer',
             'receive transfer',
             'print transfer',
+            'delete transfer',
 
             // POS
             'access pos',
@@ -141,6 +142,7 @@ class RolePermissionSeeder extends Seeder
             'approve store transfer',
             'receive transfer',
             'print transfer',
+            'delete transfer',
             'view customer return',
             'view store return',
             'view stock opname',
@@ -204,6 +206,7 @@ class RolePermissionSeeder extends Seeder
             'approve store transfer',
             'receive transfer',
             'print transfer',
+            'delete transfer',
             'view store return',
             'receive store return',
             'inspect return',
@@ -251,6 +254,7 @@ class RolePermissionSeeder extends Seeder
             'view transfer',
             'receive transfer',
             'print transfer',
+            'delete transfer',
             'view customer return',
             'process customer return',
             'view store return',

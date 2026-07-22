@@ -53,12 +53,14 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
         foreach ($sales as $sale) {
             foreach ($sale->items as $idx => $item) {
                 $rows[] = [
-                    'sale_no' => $idx === 0 ? $sale->sale_no : '',
-                    'store'   => $idx === 0 ? $sale->store->name : '',
-                    'payment' => $idx === 0 ? ($sale->paymentMethod?->name ?? '-') : '',
-                    'cashier' => $idx === 0 ? ($sale->creator?->name ?? '-') : '',
-                    'total'   => $idx === 0 ? $sale->total_amount : '',
-                    'date'    => $idx === 0 ? $sale->created_at->format('d/m/Y H:i') : '',
+                    'sale_no'         => $idx === 0 ? $sale->sale_no : '',
+                    'store'           => $idx === 0 ? $sale->store->name : '',
+                    'payment'         => $idx === 0 ? ($sale->paymentMethod?->name ?? '-') : '',
+                    'cashier'         => $idx === 0 ? ($sale->creator?->name ?? '-') : '',
+                    'subtotal_before' => $idx === 0 ? $sale->subtotal : '',
+                    'discount'        => $idx === 0 ? $sale->discount_amount : '',
+                    'total'           => $idx === 0 ? $sale->total_amount : '',
+                    'date'            => $idx === 0 ? $sale->created_at->format('d/m/Y H:i') : '',
                     'product' => $item->variant?->product?->name ?? 'Produk Terhapus',
                     'sku'     => ($item->variant?->sku ?? '-') . " (" . ($item->variant?->color?->name ?? '-') . " / " . ($item->variant?->size?->name ?? '-') . ")",
                     'qty'     => $item->qty,
@@ -73,7 +75,7 @@ class SalesExport implements FromCollection, WithHeadings, WithMapping, ShouldAu
 
     public function headings(): array
     {
-        return ['No. Penjualan', 'Toko', 'Metode Bayar', 'Kasir', 'Total Transaksi', 'Tanggal', 'Item', 'SKU / Variant', 'Qty', 'Harga Satuan', 'Subtotal Item'];
+        return ['No. Penjualan', 'Toko', 'Metode Bayar', 'Kasir', 'Subtotal (Sblm Diskon)', 'Diskon', 'Total (Stlh Diskon)', 'Tanggal', 'Item', 'SKU / Variant', 'Qty', 'Harga Satuan', 'Subtotal Item'];
     }
 
     public function map($row): array

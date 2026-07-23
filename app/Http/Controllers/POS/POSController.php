@@ -329,7 +329,7 @@ class POSController extends Controller
 
             // --- PERUBAHAN BARU: Cek jika request dari AJAX (Pop-up) ---
             if ($r->ajax() || $r->wantsJson()) {
-                $sale->load(['store', 'paymentMethod', 'creator', 'items.variant.product']);
+                $sale->load(['store', 'paymentMethod', 'creator', 'items.variant.product', 'payments.paymentMethod']);
                 $receiptHtml = view('pos.partials.receipt_html', compact('sale'))->render();
 
                 return response()->json([
@@ -351,7 +351,7 @@ class POSController extends Controller
     public function receipt(Sale $sale)
     {
         $this->authorize('access pos');
-        $sale->load(['store', 'paymentMethod', 'creator', 'items.variant.product', 'items.variant.color', 'items.variant.size']);
+        $sale->load(['store', 'paymentMethod', 'creator', 'items.variant.product', 'items.variant.color', 'items.variant.size', 'payments.paymentMethod']);
 
         if (request()->ajax() || request()->wantsJson()) {
             $receiptHtml = view('pos.partials.receipt_html', compact('sale'))->render();

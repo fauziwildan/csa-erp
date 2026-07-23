@@ -44,7 +44,7 @@
 <div class="row"><span>No.</span><span class="bold">{{ $sale->sale_no }}</span></div>
 <div class="row"><span>Tgl</span><span>{{ $sale->created_at->format('d/m/Y H:i') }}</span></div>
 <div class="row"><span>Kasir</span><span>{{ $sale->creator?->name }}</span></div>
-<div class="row"><span>Metode</span><span>{{ strtoupper($sale->paymentMethod?->name) }}</span></div>
+<div class="row"><span>Metode</span><span>{{ strtoupper($sale->paymentMethodLabel()) }}</span></div>
 
 <div class="divider"></div>
 
@@ -83,7 +83,15 @@
     <span>TOTAL</span>
     <span>Rp {{ number_format($sale->total_amount, 0, ',', '.') }}</span>
 </div>
+@if($sale->isSplitPayment())
+<div class="row bold" style="margin-top:8px"><span>PEMBAYARAN</span><span></span></div>
+@foreach($sale->paymentBreakdown() as $pay)
+<div class="row" style="font-size:12px"><span>· {{ $pay['name'] }}</span><span>{{ number_format($pay['amount'], 0, ',', '.') }}</span></div>
+@endforeach
+<div class="row bold"><span>Total Bayar</span><span>{{ number_format($sale->amount_paid, 0, ',', '.') }}</span></div>
+@else
 <div class="row" style="margin-top:8px"><span>Bayar</span><span>{{ number_format($sale->amount_paid, 0, ',', '.') }}</span></div>
+@endif
 @if($sale->change_amount > 0)
 <div class="row bold"><span>Kembalian</span><span>{{ number_format($sale->change_amount, 0, ',', '.') }}</span></div>
 @endif

@@ -10,7 +10,7 @@
     </script>
 
     <!-- WRAPPER UTAMA: Diubah paksa menjadi flex-row (Selalu berdampingan) -->
-    <div class="flex flex-row gap-4 xl:gap-6 h-[calc(100vh-6.5rem)] w-full overflow-hidden -mt-2"
+    <div id="posWrapper" class="flex flex-col md:flex-row gap-4 xl:gap-6 w-full -mt-2"
         x-data="posApp({{ $session->id }}, {{ $store->id }})" @keydown.window="handleGlobalScan($event)"
         @click.window="handleGlobalClick($event)">
 
@@ -19,7 +19,7 @@
         KIRI: KATALOG PRODUK & PENCARIAN
         ========================================== --}}
         <!-- flex-1 min-w-0 memastikan panel ini fleksibel tapi tidak akan pernah hilang -->
-        <div class="flex-1 min-w-0 flex flex-col bg-transparent overflow-hidden h-full">
+        <div id="catalogPanel" class="w-full md:flex-1 min-w-0 flex flex-col bg-transparent md:overflow-hidden md:h-full">
             {{-- 1. Search Bar & Scanner --}}
             <div class="shrink-0 mb-4">
                 <div class="relative group">
@@ -30,8 +30,16 @@
                         placeholder="Scan Barcode di sini, atau ketik nama/SKU produk..."
                         class="w-full bg-white border border-gray-200 rounded-2xl pl-14 pr-6 py-4 text-base shadow-sm focus:ring-4 focus:ring-indigo-500/20 text-gray-800 placeholder-gray-400 font-medium transition-all">
 
-                    <div x-show="search.length > 0" class="absolute inset-y-0 right-0 pr-4 flex items-center">
-                        <button @click="search = ''; document.getElementById('searchInput').focus()"
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5">
+                        {{-- Tombol keyboard: paksa buka keyboard layar saat scanner terhubung --}}
+                        <button type="button" onclick="focusSearchKeyboard()" title="Buka keyboard"
+                            class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-full p-2 transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                <path stroke-linecap="round" d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8"/>
+                            </svg>
+                        </button>
+                        <button type="button" x-show="search.length > 0" @click="search = ''; document.getElementById('searchInput').focus()"
                             class="bg-gray-100 hover:bg-gray-200 text-gray-500 rounded-full p-2 transition-colors">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -43,20 +51,21 @@
             </div>
 
             {{-- 2. Grid Produk (Scrollable Area) --}}
-            <div class="flex-1 overflow-y-auto pb-6 pr-2 custom-scrollbar">
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div id="catalogScroll" class="md:flex-1 md:overflow-y-auto pb-6 md:pr-2 custom-scrollbar">
+                {{-- Grid mengikuti LEBAR KONTAINER (auto-fill), bukan viewport → kolom otomatis menyesuaikan saat panel di-resize & di semua device --}}
+                <div class="grid gap-3 sm:gap-4" style="grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));">
 
                     <template x-for="p in filteredCatalog" :key="p.id">
                         <!-- KARTU PRODUK -->
                         <div @click="addToCart(p)"
-                            class="relative bg-white rounded-2xl transition-all duration-200 flex flex-col h-full overflow-hidden cursor-pointer select-none group shadow-sm hover:shadow-md"
+                            class="prod-card relative bg-white rounded-2xl transition-all duration-200 flex flex-col h-full overflow-hidden cursor-pointer select-none group shadow-sm hover:shadow-md"
                             :class="[
                                 p.stock <= 0 ? 'opacity-50 grayscale' : 'hover:-translate-y-1',
                                 getCartQty(p.id) > 0 ? 'ring-4 ring-indigo-500 ring-offset-2' : 'border border-gray-100'
                              ]">
 
-                            <!-- Gambar Produk -->
-                            <div class="h-32 xl:h-40 w-full bg-gray-50 relative shrink-0 border-b border-gray-100">
+                            <!-- Gambar Produk: aspect-ratio agar proporsional di segala lebar kartu (saat di-resize) -->
+                            <div class="w-full bg-gray-50 relative shrink-0 border-b border-gray-100" style="aspect-ratio: 1 / 1;">
                                 <img :src="p.image" :alt="p.name" class="w-full h-full object-cover">
 
                                 <!-- Overlay Jika Stok Habis -->
@@ -110,9 +119,17 @@
         {{-- ==========================================
         KANAN: TAGIHAN & PEMBAYARAN
         ========================================== --}}
-        <!-- Lebar dikunci mutlak (shrink-0) agar tidak bisa merusak katalog di sebelahnya -->
-        <div
-            class="w-[360px] xl:w-[420px] shrink-0 flex flex-col bg-white rounded-3xl overflow-hidden shadow-xl h-full border border-gray-200">
+        {{-- Divider: geser untuk mengubah lebar panel (perkecil keranjang → katalog lebih lega) --}}
+        {{-- Dragbar: styling di blok <style> (bukan class Tailwind) agar tetap muncul walau CSS ter-purge --}}
+        <div id="cartResizer" title="Tarik untuk mengubah lebar panel keranjang">
+            <div class="resizer-grip">
+                <span></span><span></span><span></span>
+            </div>
+        </div>
+
+        <!-- Lebar panel: full di HP; di desktop 420px (via CSS) & bisa di-resize (disimpan di browser) -->
+        <div id="cartPanel"
+            class="w-full md:shrink-0 flex flex-col bg-white rounded-3xl overflow-hidden shadow-xl md:h-full border border-gray-200">
 
             {{-- Header Tagihan --}}
             <div class="px-5 py-4 border-b border-gray-200 shrink-0 flex justify-between items-center bg-gray-50">
@@ -268,8 +285,8 @@
             </div>
 
             {{-- Area Pembayaran (Scrollable jika layar pendek) --}}
-            <div
-                class="bg-gray-50 flex-1 min-h-0 overflow-y-auto rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)] border-t border-gray-200 p-4 xl:p-5 custom-scrollbar">
+            <div id="cartScroll"
+                class="bg-gray-50 md:flex-1 md:min-h-0 md:overflow-y-auto rounded-t-3xl shadow-[0_-4px_20px_rgba(0,0,0,0.05)] border-t border-gray-200 p-4 xl:p-5 custom-scrollbar">
 
                 <!-- Rincian -->
                 <div class="space-y-2 mb-4">
@@ -569,6 +586,99 @@
         }
 
         /* =======================================================
+           LAYOUT RESPONSIF TERMINAL KASIR
+           - HP  (< md): tumpuk vertikal, panel full-width, halaman scroll normal
+           - Desktop (>= md): berdampingan, tinggi layar tetap, panel 420px & bisa di-resize
+           ======================================================= */
+        /* Saat sedang menarik dragbar, matikan transisi & hover kartu agar tidak berat */
+        #posWrapper.is-resizing .prod-card {
+            transition: none !important;
+        }
+        #posWrapper.is-resizing {
+            cursor: col-resize;
+        }
+
+        /* Dragbar tersembunyi secara default (HP); hanya tampil di desktop */
+        #cartResizer { display: none; }
+
+        @media (min-width: 768px) {
+            /* Layout desktop dikunci via CSS (bukan class Tailwind) agar tak terpengaruh purge build */
+            #posWrapper {
+                flex-direction: row;
+                height: calc(100vh - 6.5rem);
+                overflow: hidden;
+            }
+            #catalogPanel {
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                overflow: hidden;
+            }
+            /* Area scroll katalog: flex-1 + min-height:0 (wajib agar scroll aktif, bukan tumbuh mengikuti isi) */
+            #catalogScroll {
+                flex: 1 1 0%;
+                min-height: 0;
+                overflow-y: auto;
+                padding-right: 8px;
+            }
+            /* Lebar default panel; ditimpa inline-style oleh JS saat di-resize. Tinggi penuh + kolom flex */
+            #cartPanel {
+                width: 420px;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+            }
+            /* Area pembayaran ikut scroll bila panel lebih pendek dari isinya */
+            #cartScroll {
+                flex: 1 1 0%;
+                min-height: 0;
+                overflow-y: auto;
+            }
+
+            /* ---- DRAGBAR resize panel keranjang ---- */
+            #cartResizer {
+                display: flex;
+                flex: 0 0 auto;
+                width: 18px;
+                align-self: stretch;
+                align-items: center;
+                justify-content: center;
+                cursor: col-resize;
+                touch-action: none;
+                user-select: none;
+                -webkit-user-select: none;
+            }
+            #cartResizer .resizer-grip {
+                height: 96px;
+                width: 8px;
+                border-radius: 9999px;
+                background: #cbd5e1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 4px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+                transition: background .15s ease, height .15s ease;
+            }
+            #cartResizer:hover .resizer-grip { background: #6366f1; height: 112px; }
+            #cartResizer:active .resizer-grip { background: #4f46e5; }
+            #cartResizer .resizer-grip span {
+                width: 4px;
+                height: 4px;
+                border-radius: 9999px;
+                background: rgba(255, 255, 255, .9);
+            }
+        }
+
+        /* Di HP, daftar item keranjang boleh sedikit lebih tinggi agar tidak sempit */
+        @media (max-width: 767px) {
+            #cart-list {
+                max-height: 40vh !important;
+            }
+        }
+
+        /* =======================================================
        CSS MODE CETAK (PRINT) - ANTI KERTAS KOSONG
        ======================================================= */
         @media print {
@@ -578,6 +688,18 @@
             nav,
             aside {
                 display: none !important;
+            }
+
+            /* Sembunyikan katalog & panel keranjang dari kertas (targetkan via id, tahan perubahan class) */
+            #catalogPanel,
+            #cartPanel {
+                display: none !important;
+            }
+
+            /* Matikan paksaan tinggi layar agar kertas tidak ikut panjang */
+            #posWrapper {
+                height: auto !important;
+                overflow: visible !important;
             }
 
             /* 2. Sembunyikan Area Katalog (Kiri) & Area Tagihan (Kanan) secara permanen dari kertas */
@@ -1269,5 +1391,98 @@
                 },
             };
         }
+
+        // ===== #3 Tombol keyboard: paksa fokus search (buka keyboard layar) =====
+        function focusSearchKeyboard(){
+            var i = document.getElementById('searchInput');
+            if(!i) return;
+            i.readOnly = false;
+            i.focus();
+            try { i.setSelectionRange(i.value.length, i.value.length); } catch(e){}
+        }
+
+        // ===== #2 Resize panel keranjang (drag divider) — hanya desktop; grid katalog reflow otomatis =====
+        (function(){
+            var wrap = document.getElementById('posWrapper');
+            var panel = document.getElementById('cartPanel');
+            var resizer = document.getElementById('cartResizer');
+            if(!wrap || !panel || !resizer) return;
+            var MIN = 300;          // lebar minimum panel keranjang
+            var CATALOG_MIN = 190;  // sisakan minimal ~1 kartu produk di katalog
+            var dragging = false, pendingX = null, rafId = null;
+
+            function isDesktop(){ return window.matchMedia('(min-width: 768px)').matches; }
+            function gap(){ return parseFloat(getComputedStyle(wrap).columnGap) || 16; }
+            function dbW(){ return resizer.offsetWidth || 18; }
+
+            // Hitung batas dari LEBAR KONTAINER asli (bukan window) → berhenti tepat saat katalog = 1 kartu.
+            function bounds(){
+                var rect = wrap.getBoundingClientRect();
+                var g = gap();
+                var max = Math.max(MIN, rect.width - CATALOG_MIN - dbW() - g * 2);
+                return { right: rect.right, g: g, max: max };
+            }
+
+            // Terapkan lebar tersimpan (desktop). Di HP: kosongkan inline agar w-full (CSS) berlaku.
+            function applyWidth(){
+                if(!isDesktop()){ panel.style.width = ''; return; }
+                var b = bounds();
+                var saved = parseInt(localStorage.getItem('posCartWidth'));
+                if(saved && saved >= MIN){ panel.style.width = Math.min(saved, b.max) + 'px'; }
+                else { panel.style.width = ''; } // pakai default 420px dari CSS
+            }
+            applyWidth();
+
+            // Update lebar maksimal 1x per frame (requestAnimationFrame) → tidak ngelag.
+            function frame(){
+                rafId = null;
+                if(pendingX == null) return;
+                var b = bounds();
+                var w = b.right - pendingX - b.g; // lebar cart = jarak kursor ke tepi kanan kontainer
+                w = Math.max(MIN, Math.min(b.max, w));
+                panel.style.width = w + 'px';
+            }
+            function onMove(e){
+                if(!dragging) return;
+                pendingX = e.clientX;
+                if(rafId == null) rafId = requestAnimationFrame(frame);
+                if(e.cancelable) e.preventDefault();
+            }
+            function stop(e){
+                if(!dragging) return;
+                dragging = false;
+                if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+                frame(); // terapkan posisi terakhir
+                wrap.classList.remove('is-resizing');
+                document.body.style.userSelect = '';
+                document.body.style.cursor = '';
+                try { if(e && e.pointerId != null) resizer.releasePointerCapture(e.pointerId); } catch(_){}
+                localStorage.setItem('posCartWidth', parseInt(panel.style.width) || 420);
+            }
+            function start(e){
+                if(!isDesktop()) return; // dragbar tersembunyi di HP
+                dragging = true;
+                pendingX = e.clientX;
+                wrap.classList.add('is-resizing');
+                document.body.style.userSelect = 'none';
+                document.body.style.cursor = 'col-resize';
+                // Pointer capture: gerakan pointer tetap terlacak walau keluar dari dragbar / bergerak cepat.
+                try { resizer.setPointerCapture(e.pointerId); } catch(_){}
+                if(e.cancelable) e.preventDefault();
+            }
+            // Pointer Events menangani mouse, sentuh, & pen sekaligus.
+            resizer.addEventListener('pointerdown', start);
+            resizer.addEventListener('pointermove', onMove);
+            resizer.addEventListener('pointerup', stop);
+            resizer.addEventListener('pointercancel', stop);
+            // Dobel-klik dragbar → reset ke lebar default 420px.
+            resizer.addEventListener('dblclick', function(){
+                if(!isDesktop()) return;
+                panel.style.width = '420px';
+                localStorage.setItem('posCartWidth', '420');
+            });
+            // Saat layar diputar / diubah ukuran (mis. dari HP ke desktop), sesuaikan ulang.
+            window.addEventListener('resize', applyWidth);
+        })();
     </script>
 @endpush

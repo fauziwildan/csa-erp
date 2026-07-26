@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\StockResetController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Master\BrandController;
@@ -280,6 +281,12 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::get('/{onlineOrder}/resi', [App\Http\Controllers\Admin\OnlineOrderController::class, 'resi'])->name('resi');
         Route::post('/{onlineOrder}/pay', [App\Http\Controllers\Admin\OnlineOrderController::class, 'pay'])->name('pay');
         Route::post('/{onlineOrder}/cancel', [App\Http\Controllers\Admin\OnlineOrderController::class, 'cancel'])->name('cancel');
+    });
+
+    // Reset Stok (khusus superadmin)
+    Route::middleware('can:reset stock')->prefix('stock-reset')->name('stock-reset.')->group(function () {
+        Route::get('/', [StockResetController::class, 'index'])->name('index');
+        Route::post('/', [StockResetController::class, 'execute'])->name('execute');
     });
 
     // Administration

@@ -116,6 +116,9 @@ class RolePermissionSeeder extends Seeder
             // Settlement toko → owner
             'view settlement',
             'manage settlement',
+
+            // Reset stok (superadmin only — alat administratif)
+            'reset stock',
         ];
 
         foreach ($permissions as $permission) {

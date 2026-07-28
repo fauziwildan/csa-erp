@@ -112,6 +112,7 @@ class DashboardController extends Controller
         
         $storeId = $request->query('store_id');
         $stores  = Store::where('is_active', true)->orderBy('name')->get();
+        $warehouses = Warehouse::where('is_active', true)->orderBy('name')->get();
 
         $today     = now()->toDateString();
         $yesterday = now()->subDay()->toDateString();
@@ -195,15 +196,27 @@ class DashboardController extends Controller
             ->groupBy(DB::raw('DATE(created_at)'))
             ->pluck('total_orders', 'date');
 
+        // Pengeluaran harian 30 hari (untuk garis Pengeluaran pada grafik Arus Kas mobile)
+        $rawExpense = Expense::select(
+                DB::raw('DATE(expense_date) as date'),
+                DB::raw('SUM(amount) as total')
+            )
+            ->when($storeId, fn($q) => $q->where('store_id', $storeId))
+            ->where('expense_date', '>=', now()->subDays(29)->startOfDay())
+            ->groupBy(DB::raw('DATE(expense_date)'))
+            ->pluck('total', 'date');
+
         // Fill gaps so chart has continuous 30-day data
         $chartLabels  = [];
         $chartRevenue = [];
         $chartOrders  = [];
+        $chartExpense = [];
         for ($i = 29; $i >= 0; $i--) {
             $d = now()->subDays($i)->toDateString();
             $chartLabels[]  = Carbon::parse($d)->format('d M');
             $chartRevenue[] = (float) ($rawRevenue[$d] ?? 0);
             $chartOrders[]  = (int)   ($rawOrders[$d]  ?? 0);
+            $chartExpense[] = (float) ($rawExpense[$d] ?? 0);
         }
 
         // ── Sales by Store ───────────────────────────────────
@@ -318,6 +331,43 @@ class DashboardController extends Controller
 
         $todayProfit = $todaySales - $todayExpense;
 
+        // Keuntungan kemarin → untuk badge tren "% vs kemarin" di hero mobile
+        $yesterdayExpense = Expense::when($storeId, fn($q) => $q->where('store_id', $storeId))
+            ->whereDate('expense_date', $yesterday)
+            ->sum('amount');
+        $yesterdayProfit = $yesterdaySales - $yesterdayExpense;
+
+        // ── Laporan Laba Rugi (filter rentang tanggal) ───────
+        // Default: awal bulan s/d hari ini. Bisa difilter via pl_from & pl_to.
+        // Revenue (Omzet)  = total seluruh penjualan pada rentang
+        // HPP              = Σ (qty terjual × harga modal / base_price produk)
+        // Gross Profit     = Revenue − HPP
+        // Operating Expense= total pengeluaran pada rentang
+        // Net Profit       = Gross Profit − Operating Expense
+        try { $plFromDate = $request->query('pl_from') ? Carbon::parse($request->query('pl_from'))->startOfDay() : now()->startOfMonth(); }
+        catch (\Throwable $e) { $plFromDate = now()->startOfMonth(); }
+        try { $plToDate = $request->query('pl_to') ? Carbon::parse($request->query('pl_to'))->endOfDay() : now()->endOfDay(); }
+        catch (\Throwable $e) { $plToDate = now()->endOfDay(); }
+        if ($plFromDate->gt($plToDate)) { [$plFromDate, $plToDate] = [$plToDate->copy()->startOfDay(), $plFromDate->copy()->endOfDay()]; }
+        $plFrom = $plFromDate->toDateString();
+        $plTo   = $plToDate->toDateString();
+
+        $plRevenue = (float) Sale::when($storeId, fn($q) => $q->where('store_id', $storeId))
+            ->whereBetween('created_at', [$plFromDate, $plToDate])
+            ->sum('total_amount');
+        $plHpp = (float) SaleItem::query()
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('product_variants', 'sale_items.product_variant_id', '=', 'product_variants.id')
+            ->join('products', 'product_variants.product_id', '=', 'products.id')
+            ->when($storeId, fn($q) => $q->where('sales.store_id', $storeId))
+            ->whereBetween('sales.created_at', [$plFromDate, $plToDate])
+            ->sum(DB::raw('sale_items.qty * products.base_price'));
+        $plGrossProfit = $plRevenue - $plHpp;
+        $plOpex = (float) Expense::when($storeId, fn($q) => $q->where('store_id', $storeId))
+            ->whereBetween('expense_date', [$plFrom, $plTo])
+            ->sum('amount');
+        $plNetProfit = $plGrossProfit - $plOpex;
+
         $approachingDueSales = Sale::with(['store'])
             ->whereNotNull('customer_name')
             ->where('customer_name', '!=', '')
@@ -337,17 +387,19 @@ class DashboardController extends Controller
 
         // Mengembalikan View aslinya (Super Admin Dashboard)
         return view('dashboard.index', compact(
-            'stores', 'storeId', 'storeDateFilter', 'topDateFilter',
+            'stores', 'warehouses', 'storeId', 'storeDateFilter', 'topDateFilter',
             'stats',
             'todaySales', 'yesterdaySales', 'monthSales', 'lastMonthSales',
             'todayOrders', 'monthOrders',
             'topProducts',
-            'chartLabels', 'chartRevenue', 'chartOrders',
+            'chartLabels', 'chartRevenue', 'chartOrders', 'chartExpense',
             'salesByStore', 'paymentDistribution',
             'storeStockValue', 'warehouseStockValue',
             'monthReturns', 'pendingReturns',
             // PASTIKAN VARIABEL INI DITAMBAHKAN KE DALAM COMPACT:
             'totalItemsSold', 'rewardToko', 'rewardOwner', 'totalExpense', 'todayExpense', 'todayProfit',
+            'yesterdayProfit', 'yesterdayExpense',
+            'plRevenue', 'plHpp', 'plGrossProfit', 'plOpex', 'plNetProfit', 'plFrom', 'plTo',
             'approachingDueSales', 'latestOpname'
         ));
     }

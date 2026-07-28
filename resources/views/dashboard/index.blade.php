@@ -84,7 +84,257 @@
 @endpush
 
 @section('content')
-    <div class="space-y-6 dash">
+
+    {{-- ============================================================
+         TAMPILAN MOBILE (khusus < md) — desain ringkas finansial owner
+         ============================================================ --}}
+    @php
+        $trendPct = $yesterdayProfit != 0
+            ? (($todayProfit - $yesterdayProfit) / abs($yesterdayProfit)) * 100
+            : ($todayProfit > 0 ? 100 : 0);
+        $trendUp = $trendPct >= 0;
+    @endphp
+    <div class="md:hidden space-y-4 -mt-1">
+
+        {{-- Header: sapaan + tanggal + filter --}}
+        <div>
+            <p class="text-sm text-gray-500">Halo,</p>
+            <h2 class="text-xl font-black text-gray-900 leading-tight">{{ Auth::user()->name }} <span class="align-middle">👋</span></h2>
+            <p class="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                {{ now()->isoFormat('dddd, D MMMM Y') }}
+            </p>
+
+            <form method="GET" action="{{ route('dashboard') }}" class="mt-3 grid grid-cols-2 gap-2">
+                @if(request('store_date_filter'))<input type="hidden" name="store_date_filter" value="{{ request('store_date_filter') }}">@endif
+                @if(request('pl_from'))<input type="hidden" name="pl_from" value="{{ request('pl_from') }}">@endif
+                @if(request('pl_to'))<input type="hidden" name="pl_to" value="{{ request('pl_to') }}">@endif
+                <div class="relative">
+                    <select name="warehouse_id" onchange="this.form.submit()"
+                        class="appearance-none w-full rounded-xl border border-gray-200 bg-white pl-9 pr-7 py-2.5 text-sm font-semibold text-gray-700 shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <option value="">Semua Gudang</option>
+                        @foreach($warehouses as $warehouse)
+                            <option value="{{ $warehouse->id }}" {{ request('warehouse_id') == $warehouse->id ? 'selected' : '' }}>{{ $warehouse->name }}</option>
+                        @endforeach
+                    </select>
+                    <svg class="w-4 h-4 text-gray-400 absolute left-3" style="top:50%;transform:translateY(-50%)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5m-5-8h.01M9 11h.01"/></svg>
+                    <svg class="w-4 h-4 text-gray-400 absolute right-2 pointer-events-none" style="top:50%;transform:translateY(-50%)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+                <div class="relative">
+                    <select name="store_id" onchange="this.form.submit()"
+                        class="appearance-none w-full rounded-xl border border-gray-200 bg-white pl-9 pr-7 py-2.5 text-sm font-semibold text-gray-700 shadow-sm outline-none focus:ring-2 focus:ring-indigo-500/20">
+                        <option value="">Semua Toko</option>
+                        @foreach($stores as $store)
+                            <option value="{{ $store->id }}" {{ request('store_id') == $store->id ? 'selected' : '' }}>{{ $store->name }}</option>
+                        @endforeach
+                    </select>
+                    <svg class="w-4 h-4 text-gray-400 absolute left-3" style="top:50%;transform:translateY(-50%)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9l1-4h16l1 4M4 9v10a1 1 0 001 1h14a1 1 0 001-1V9M4 9h16"/></svg>
+                    <svg class="w-4 h-4 text-gray-400 absolute right-2 pointer-events-none" style="top:50%;transform:translateY(-50%)" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+            </form>
+        </div>
+
+        {{-- Hero: Keuntungan Hari Ini --}}
+        <div class="rounded-3xl p-5 text-white relative overflow-hidden shadow-lg" style="background:linear-gradient(140deg,#6366f1 0%,#7c3aed 55%,#6d28d9 100%)">
+            <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10"></div>
+            <div class="absolute right-10 top-16 w-16 h-16 rounded-full bg-white/5"></div>
+
+            <div class="relative z-10 flex items-start justify-between">
+                <div>
+                    <p class="text-[11px] font-bold uppercase tracking-widest text-white/70 flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-white/80"></span> Keuntungan Hari Ini
+                    </p>
+                    <p class="text-3xl font-black mt-2 leading-none">Rp {{ number_format($todayProfit, 0, ',', '.') }}</p>
+                    <div class="mt-3 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 text-xs font-bold">
+                        <svg class="w-3.5 h-3.5 {{ $trendUp ? '' : 'rotate-180' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 15l7-7 7 7"/></svg>
+                        {{ number_format(abs($trendPct), 1) }}%
+                        <span class="font-medium text-white/70">vs kemarin</span>
+                    </div>
+                </div>
+                <div class="p-2.5 rounded-2xl bg-white/15">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l6-6 4 4 8-8M21 7h-4m4 0v4"/></svg>
+                </div>
+            </div>
+
+            <div class="relative z-10 mt-4 pt-4 border-t border-white/15 grid grid-cols-3 gap-2 text-center">
+                <div>
+                    <div class="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wide text-white/70 font-semibold">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg> Pemasukan
+                    </div>
+                    <p class="text-xs font-bold mt-1">Rp {{ number_format($todaySales, 0, ',', '.') }}</p>
+                </div>
+                <div class="border-x border-white/15">
+                    <div class="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wide text-white/70 font-semibold">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg> Pengeluaran
+                    </div>
+                    <p class="text-xs font-bold mt-1">Rp {{ number_format($todayExpense, 0, ',', '.') }}</p>
+                </div>
+                <div>
+                    <div class="flex items-center justify-center gap-1 text-[10px] uppercase tracking-wide text-white/70 font-semibold">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg> Penjualan
+                    </div>
+                    <p class="text-xs font-bold mt-1">{{ number_format($todayOrders) }} Trx</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Invoice jatuh tempo --}}
+        @if(isset($approachingDueSales) && $approachingDueSales->count() > 0)
+        <div x-data="{ open: false }" class="bg-white rounded-2xl border border-red-100 shadow-sm overflow-hidden">
+            <button type="button" @click="open = !open" class="w-full flex items-center gap-3 px-4 py-3.5 text-left">
+                <div class="p-2 rounded-xl bg-red-100 text-red-600 shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-bold text-red-700">{{ $approachingDueSales->count() }} Invoice jatuh tempo</p>
+                    <p class="text-xs text-gray-400">Segera lakukan pembayaran</p>
+                </div>
+                <svg class="w-5 h-5 text-gray-300 shrink-0 transition-transform" :class="open ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <div x-show="open" x-transition.opacity style="display:none" class="border-t border-gray-100 divide-y divide-gray-50">
+                @foreach($approachingDueSales as $sale)
+                @php $due = \Carbon\Carbon::parse($sale->due_date); $isOverdue = $due->isPast(); @endphp
+                <a href="{{ route('store.customers.show', ['name' => $sale->customer_name, 'phone' => $sale->customer_phone]) }}"
+                   class="flex items-center justify-between gap-2 px-4 py-2.5">
+                    <div class="min-w-0">
+                        <p class="text-xs font-bold text-gray-800 truncate">{{ $sale->customer_name }}</p>
+                        <p class="text-[10px] text-gray-400 font-mono">{{ $sale->sale_no }}</p>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <p class="text-xs font-extrabold text-red-600">Rp {{ number_format(max(0, $sale->total_amount - $sale->amount_paid), 0, ',', '.') }}</p>
+                        <p class="text-[10px] {{ $isOverdue ? 'text-red-600 font-bold' : 'text-amber-600' }}">{{ $due->format('d/m/Y') }}</p>
+                    </div>
+                </a>
+                @endforeach
+            </div>
+        </div>
+        @endif
+
+        {{-- Arus Kas 30 hari (grafik garis) --}}
+        <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div class="flex items-center justify-between mb-1">
+                <h3 class="text-sm font-bold text-gray-800">Arus Kas <span class="text-gray-400 font-medium">(30 Hari Terakhir)</span></h3>
+                <a href="{{ route('finance.index') }}" class="text-xs font-semibold text-indigo-600">Lihat Detail</a>
+            </div>
+            <div class="flex items-center gap-4 mb-2">
+                <span class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span> Pemasukan</span>
+                <span class="flex items-center gap-1.5 text-[11px] text-gray-500"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Pengeluaran</span>
+            </div>
+            <div class="relative h-44 w-full"><canvas id="mobileCashflowChart"></canvas></div>
+        </div>
+
+        {{-- Reward Toko & Dividen Owner --}}
+        <div class="grid grid-cols-2 gap-3">
+            <div class="bg-white rounded-2xl border border-indigo-100 shadow-sm p-4">
+                <div class="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
+                </div>
+                <p class="text-[10px] font-bold text-indigo-400 uppercase leading-tight">Total Akumulasi Reward Toko</p>
+                <p class="text-lg font-black text-gray-900 mt-1 leading-tight">Rp {{ number_format($rewardToko, 0, ',', '.') }}</p>
+                <p class="text-[10px] text-gray-400 mt-1">Dihitung dari {{ number_format($totalItemsSold) }} pcs</p>
+            </div>
+            <div class="bg-white rounded-2xl border border-emerald-100 shadow-sm p-4">
+                <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                </div>
+                <p class="text-[10px] font-bold text-emerald-400 uppercase leading-tight">Total Dividen Owner</p>
+                <p class="text-lg font-black text-emerald-600 mt-1 leading-tight">Rp {{ number_format($rewardOwner, 0, ',', '.') }}</p>
+                <p class="text-[10px] text-gray-400 mt-1">Alokasi bersih {{ now()->year }}</p>
+            </div>
+        </div>
+
+        {{-- Ringkasan Laba Rugi (dengan filter rentang tanggal) --}}
+        <div>
+            <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-bold text-gray-800">Ringkasan Laba Rugi</h3>
+                <a href="{{ route('finance.index') }}" class="text-xs font-semibold text-indigo-600">Detail</a>
+            </div>
+
+            {{-- Filter rentang tanggal --}}
+            <form method="GET" action="{{ route('dashboard') }}" class="mb-2 flex items-center gap-1.5">
+                @if(request('warehouse_id'))<input type="hidden" name="warehouse_id" value="{{ request('warehouse_id') }}">@endif
+                @if(request('store_id'))<input type="hidden" name="store_id" value="{{ request('store_id') }}">@endif
+                <input type="date" name="pl_from" value="{{ $plFrom }}" class="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20">
+                <span class="text-[10px] text-gray-400 shrink-0">s/d</span>
+                <input type="date" name="pl_to" value="{{ $plTo }}" class="flex-1 min-w-0 border border-gray-200 rounded-lg px-2 py-1.5 text-xs text-gray-700 bg-white outline-none focus:ring-2 focus:ring-indigo-500/20">
+                <button type="submit" class="bg-indigo-600 text-white text-xs font-bold px-3 py-1.5 rounded-lg shrink-0">OK</button>
+            </form>
+
+            {{-- Preset cepat --}}
+            @php
+                $plBase = request()->only(['store_id', 'warehouse_id']);
+                $plPresets = [
+                    'Hari Ini'  => [now()->toDateString(), now()->toDateString()],
+                    '7 Hari'    => [now()->subDays(6)->toDateString(), now()->toDateString()],
+                    'Bulan Ini' => [now()->startOfMonth()->toDateString(), now()->toDateString()],
+                    'Bln Lalu'  => [now()->subMonth()->startOfMonth()->toDateString(), now()->subMonth()->endOfMonth()->toDateString()],
+                ];
+            @endphp
+            <div class="flex items-center gap-1.5 mb-3 overflow-x-auto pb-0.5">
+                @foreach($plPresets as $label => $range)
+                    @php $active = ($plFrom === $range[0] && $plTo === $range[1]); @endphp
+                    <a href="{{ route('dashboard', array_merge($plBase, ['pl_from' => $range[0], 'pl_to' => $range[1]])) }}"
+                       class="shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-full border transition-colors {{ $active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200' }}">{{ $label }}</a>
+                @endforeach
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                {{-- 1. Revenue / Omzet (full width) --}}
+                <div class="col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+                    <div class="w-11 h-11 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                        <svg style="width:22px;height:22px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-bold text-indigo-500 uppercase tracking-wide">Revenue · Omzet</p>
+                        <p class="text-lg font-black text-gray-900 truncate leading-tight">Rp {{ number_format($plRevenue, 0, ',', '.') }}</p>
+                        <p class="text-[10px] text-gray-400">Total seluruh penjualan</p>
+                    </div>
+                </div>
+
+                {{-- 2. HPP / COGS --}}
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div class="w-9 h-9 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-2.5">
+                        <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                    </div>
+                    <p class="text-[10px] font-bold text-amber-500 uppercase tracking-wide leading-tight">HPP · Modal Barang</p>
+                    <p class="text-base font-black text-gray-900 mt-1 truncate">Rp {{ number_format($plHpp, 0, ',', '.') }}</p>
+                </div>
+
+                {{-- 3. Gross Profit / Laba Kotor --}}
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div class="w-9 h-9 rounded-full bg-sky-100 text-sky-600 flex items-center justify-center mb-2.5">
+                        <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l6-6 4 4 8-8M21 7h-4m4 0v4"/></svg>
+                    </div>
+                    <p class="text-[10px] font-bold text-sky-500 uppercase tracking-wide leading-tight">Gross Profit · Laba Kotor</p>
+                    <p class="text-base font-black mt-1 truncate {{ $plGrossProfit >= 0 ? 'text-gray-900' : 'text-red-600' }}">Rp {{ number_format($plGrossProfit, 0, ',', '.') }}</p>
+                </div>
+
+                {{-- 4. Operating Expense / Biaya Operasional --}}
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+                    <div class="w-9 h-9 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mb-2.5">
+                        <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m2 9H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <p class="text-[10px] font-bold text-rose-500 uppercase tracking-wide leading-tight">Operating Expense · Biaya Ops</p>
+                    <p class="text-base font-black text-gray-900 mt-1 truncate">Rp {{ number_format($plOpex, 0, ',', '.') }}</p>
+                </div>
+
+                {{-- 5. Net Profit / Laba Bersih (highlighted) --}}
+                <div class="rounded-2xl border p-4 {{ $plNetProfit >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200' }}">
+                    <div class="w-9 h-9 rounded-full flex items-center justify-center mb-2.5 {{ $plNetProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white' }}">
+                        <svg style="width:18px;height:18px" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+                    </div>
+                    <p class="text-[10px] font-bold uppercase tracking-wide leading-tight {{ $plNetProfit >= 0 ? 'text-emerald-600' : 'text-red-600' }}">Net Profit · Laba Bersih</p>
+                    <p class="text-base font-black mt-1 truncate {{ $plNetProfit >= 0 ? 'text-emerald-700' : 'text-red-700' }}">Rp {{ number_format($plNetProfit, 0, ',', '.') }}</p>
+                </div>
+            </div>
+            <p class="text-[10px] text-gray-400 mt-2 px-1">Laba Kotor = Omzet − HPP · Laba Bersih = Laba Kotor − Biaya Operasional. HPP dihitung dari harga modal (base price) tiap produk.</p>
+        </div>
+    </div>
+
+    {{-- ============================================================
+         TAMPILAN DESKTOP (md ke atas) — layout lama, tak diubah
+         ============================================================ --}}
+    <div class="space-y-6 dash hidden md:block">
 
         {{-- 1. Welcome Banner & Filter --}}
         <div class="bg-gradient-to-r from-indigo-600 to-indigo-800 rounded-xl p-6 text-white flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
@@ -99,6 +349,8 @@
             <form method="GET" action="{{ route('dashboard') }}" class="shrink-0 flex items-center gap-3 flex-wrap md:justify-end">
                 @if(request('store_date_filter'))<input type="hidden" name="store_date_filter" value="{{ request('store_date_filter') }}">@endif
                 @if(request('top_date_filter'))<input type="hidden" name="top_date_filter" value="{{ request('top_date_filter') }}">@endif
+                @if(request('pl_from'))<input type="hidden" name="pl_from" value="{{ request('pl_from') }}">@endif
+                @if(request('pl_to'))<input type="hidden" name="pl_to" value="{{ request('pl_to') }}">@endif
                 
                 <!-- Filter Gudang Baru -->
                 <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
@@ -264,59 +516,109 @@
             </div>
         </div>
         @endif
-        <div class="mb-2">
-            <h3 class="text-lg font-bold text-gray-800 border-l-4 border-indigo-500 pl-3">Ringkasan Finansial Eksekutif</h3>
-        </div>
+        {{-- Header Laba Rugi + Filter Tanggal (desktop) --}}
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-1">
+            <h3 class="text-lg font-bold text-gray-800 border-l-4 border-indigo-500 pl-3">Ringkasan Laba Rugi</h3>
 
-        {{-- Daily Financial Cards --}}
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 cards-tight">
-            {{-- Card Pemasukan Hari Ini --}}
-            <a href="{{ route('finance.index') }}" class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:border-blue-400 transition-all hover:shadow-md group relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-16 h-16 bg-blue-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                <p class="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1 relative z-10">Pemasukan Hari Ini</p>
+            <div class="flex flex-wrap items-center gap-2">
+                {{-- Preset cepat --}}
+                @php
+                    $plBaseD = request()->only(['store_id', 'warehouse_id']);
+                    $plPresetsD = [
+                        'Hari Ini'  => [now()->toDateString(), now()->toDateString()],
+                        '7 Hari'    => [now()->subDays(6)->toDateString(), now()->toDateString()],
+                        'Bulan Ini' => [now()->startOfMonth()->toDateString(), now()->toDateString()],
+                        'Bln Lalu'  => [now()->subMonth()->startOfMonth()->toDateString(), now()->subMonth()->endOfMonth()->toDateString()],
+                    ];
+                @endphp
+                @foreach($plPresetsD as $label => $range)
+                    @php $active = ($plFrom === $range[0] && $plTo === $range[1]); @endphp
+                    <a href="{{ route('dashboard', array_merge($plBaseD, ['pl_from' => $range[0], 'pl_to' => $range[1]])) }}"
+                       class="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors {{ $active ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300' }}">{{ $label }}</a>
+                @endforeach
+
+                {{-- Rentang kustom --}}
+                <form method="GET" action="{{ route('dashboard') }}" class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-2 py-1">
+                    @if(request('warehouse_id'))<input type="hidden" name="warehouse_id" value="{{ request('warehouse_id') }}">@endif
+                    @if(request('store_id'))<input type="hidden" name="store_id" value="{{ request('store_id') }}">@endif
+                    <input type="date" name="pl_from" value="{{ $plFrom }}" class="border-0 p-0 text-xs text-gray-700 outline-none focus:ring-0 bg-transparent">
+                    <span class="text-xs text-gray-400">s/d</span>
+                    <input type="date" name="pl_to" value="{{ $plTo }}" class="border-0 p-0 text-xs text-gray-700 outline-none focus:ring-0 bg-transparent">
+                    <button type="submit" class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-md">OK</button>
+                </form>
+            </div>
+        </div>
+        <p class="text-xs text-gray-400 mb-3">
+            Periode {{ \Carbon\Carbon::parse($plFrom)->isoFormat('D MMM Y') }} – {{ \Carbon\Carbon::parse($plTo)->isoFormat('D MMM Y') }}
+            · Laba Kotor = Omzet − HPP · Laba Bersih = Laba Kotor − Biaya Operasional
+        </p>
+
+        {{-- P&L Cards --}}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 cards-tight">
+            {{-- 1. Revenue / Omzet --}}
+            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-16 h-16 bg-indigo-50 rounded-bl-full -mr-4 -mt-4"></div>
+                <p class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-1 relative z-10">Revenue · Omzet</p>
                 <div class="flex items-center justify-between relative z-10">
-                    <h4 class="text-xl font-black text-gray-900">Rp {{ number_format($todaySales, 0, ',', '.') }}</h4>
-                    <div class="p-2 bg-blue-100 rounded-lg text-blue-600">
+                    <h4 class="text-lg font-black text-gray-900">Rp {{ number_format($plRevenue, 0, ',', '.') }}</h4>
+                    <div class="p-2 bg-indigo-100 rounded-lg text-indigo-600 shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     </div>
                 </div>
-            </a>
+                <p class="text-[10px] text-gray-400 mt-1 relative z-10">Total seluruh penjualan</p>
+            </div>
 
-            {{-- Card Pengeluaran Hari Ini --}}
-            <a href="{{ route('finance.index') }}" class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:border-red-400 transition-all hover:shadow-md group relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                <p class="text-xs font-bold text-red-500 uppercase tracking-wider mb-1 relative z-10">Pengeluaran Hari Ini</p>
+            {{-- 2. HPP / COGS --}}
+            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-16 h-16 bg-amber-50 rounded-bl-full -mr-4 -mt-4"></div>
+                <p class="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1 relative z-10">HPP · Modal Barang</p>
                 <div class="flex items-center justify-between relative z-10">
-                    <h4 class="text-xl font-black text-gray-900">Rp {{ number_format($todayExpense, 0, ',', '.') }}</h4>
-                    <div class="p-2 bg-red-100 rounded-lg text-red-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" /></svg>
+                    <h4 class="text-lg font-black text-gray-900">Rp {{ number_format($plHpp, 0, ',', '.') }}</h4>
+                    <div class="p-2 bg-amber-100 rounded-lg text-amber-600 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                     </div>
                 </div>
-            </a>
+                <p class="text-[10px] text-gray-400 mt-1 relative z-10">Modal barang terjual</p>
+            </div>
 
-            {{-- Card Keuntungan Hari Ini --}}
-            <a href="{{ route('finance.index') }}" class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:border-emerald-400 transition-all hover:shadow-md group relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-16 h-16 bg-emerald-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-1 relative z-10">Keuntungan Hari Ini</p>
+            {{-- 3. Gross Profit / Laba Kotor --}}
+            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-16 h-16 bg-sky-50 rounded-bl-full -mr-4 -mt-4"></div>
+                <p class="text-xs font-bold text-sky-500 uppercase tracking-wider mb-1 relative z-10">Gross Profit · Laba Kotor</p>
                 <div class="flex items-center justify-between relative z-10">
-                    <h4 class="text-xl font-black text-gray-900">Rp {{ number_format($todayProfit, 0, ',', '.') }}</h4>
-                    <div class="p-2 bg-emerald-100 rounded-lg text-emerald-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                    <h4 class="text-lg font-black {{ $plGrossProfit >= 0 ? 'text-gray-900' : 'text-red-600' }}">Rp {{ number_format($plGrossProfit, 0, ',', '.') }}</h4>
+                    <div class="p-2 bg-sky-100 rounded-lg text-sky-600 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 17l6-6 4 4 8-8M21 7h-4m4 0v4" /></svg>
                     </div>
                 </div>
-            </a>
+                <p class="text-[10px] text-gray-400 mt-1 relative z-10">Omzet − HPP</p>
+            </div>
 
-            {{-- Card Penjualan Hari Ini (Trx) --}}
-            <a href="{{ route('finance.index') }}" class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:border-amber-400 transition-all hover:shadow-md group relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-16 h-16 bg-amber-50 rounded-bl-full -mr-4 -mt-4 transition-transform group-hover:scale-110"></div>
-                <p class="text-xs font-bold text-amber-500 uppercase tracking-wider mb-1 relative z-10">Penjualan Hari Ini</p>
+            {{-- 4. Operating Expense / Biaya Operasional --}}
+            <div class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-16 h-16 bg-rose-50 rounded-bl-full -mr-4 -mt-4"></div>
+                <p class="text-xs font-bold text-rose-500 uppercase tracking-wider mb-1 relative z-10">Op. Expense · Biaya Ops</p>
                 <div class="flex items-center justify-between relative z-10">
-                    <h4 class="text-xl font-black text-gray-900">{{ number_format($todayOrders) }} Trx</h4>
-                    <div class="p-2 bg-amber-100 rounded-lg text-amber-600">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                    <h4 class="text-lg font-black text-gray-900">Rp {{ number_format($plOpex, 0, ',', '.') }}</h4>
+                    <div class="p-2 bg-rose-100 rounded-lg text-rose-600 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m2 9H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </div>
                 </div>
-            </a>
+                <p class="text-[10px] text-gray-400 mt-1 relative z-10">Biaya operasional</p>
+            </div>
+
+            {{-- 5. Net Profit / Laba Bersih (highlighted) --}}
+            <div class="rounded-xl p-5 border shadow-sm relative overflow-hidden {{ $plNetProfit >= 0 ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200' }}">
+                <div class="absolute top-0 right-0 w-16 h-16 {{ $plNetProfit >= 0 ? 'bg-emerald-100' : 'bg-red-100' }} rounded-bl-full -mr-4 -mt-4"></div>
+                <p class="text-xs font-bold uppercase tracking-wider mb-1 relative z-10 {{ $plNetProfit >= 0 ? 'text-emerald-600' : 'text-red-600' }}">Net Profit · Laba Bersih</p>
+                <div class="flex items-center justify-between relative z-10">
+                    <h4 class="text-lg font-black {{ $plNetProfit >= 0 ? 'text-emerald-700' : 'text-red-700' }}">Rp {{ number_format($plNetProfit, 0, ',', '.') }}</h4>
+                    <div class="p-2 rounded-lg shrink-0 {{ $plNetProfit >= 0 ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white' }}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
+                    </div>
+                </div>
+                <p class="text-[10px] {{ $plNetProfit >= 0 ? 'text-emerald-600/70' : 'text-red-500/70' }} mt-1 relative z-10">Laba Kotor − Biaya Ops</p>
+            </div>
         </div>
 
         {{-- Arus Kas — SATU kartu interaktif: klik segmen → detail geser dari kanan, bisa ditutup --}}
@@ -799,6 +1101,57 @@
                 });
             }
 
+        });
+    </script>
+@endpush
+
+@push('scripts')
+    {{-- Grafik Arus Kas 30 hari (khusus tampilan mobile) --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var el = document.getElementById('mobileCashflowChart');
+            if (!el || typeof Chart === 'undefined') return;
+
+            new Chart(el, {
+                type: 'line',
+                data: {
+                    labels: @json($chartLabels),
+                    datasets: [
+                        {
+                            label: 'Pemasukan', data: @json($chartRevenue),
+                            borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.10)',
+                            fill: true, tension: 0.35, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4
+                        },
+                        {
+                            label: 'Pengeluaran', data: @json($chartExpense),
+                            borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.06)',
+                            fill: true, tension: 0.35, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function (c) { return c.dataset.label + ': Rp ' + Number(c.parsed.y).toLocaleString('id-ID'); }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { maxTicksLimit: 5, font: { size: 9 }, color: '#9ca3af' } },
+                        y: {
+                            beginAtZero: true, grid: { color: '#f3f4f6' },
+                            ticks: {
+                                font: { size: 9 }, color: '#9ca3af',
+                                callback: function (v) { return v >= 1000000 ? (v / 1000000) + ' jt' : (v >= 1000 ? (v / 1000) + ' rb' : v); }
+                            }
+                        }
+                    }
+                }
+            });
         });
     </script>
 @endpush

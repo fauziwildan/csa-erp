@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -37,6 +38,30 @@ class Sale extends Model
     public function approver(): BelongsTo      { return $this->belongsTo(User::class, 'approved_by'); }
     public function items(): HasMany           { return $this->hasMany(SaleItem::class); }
     public function payments(): HasMany        { return $this->hasMany(SalePayment::class); }
+
+    /**
+     * Filter nota berdasarkan jenis pembayaran: 'cash' (Tunai) atau 'transfer' (Non-Tunai:
+     * transfer/qris/card/other). Nota dengan rincian sale_payments dicek dari situ (split
+     * payment cocok jika salah satu baris sesuai jenis); nota lama tanpa rincian fallback
+     * ke payment_method utama. Nilai lain (termasuk kosong/null) tidak memfilter apa pun.
+     */
+    public function scopeFilterPaymentType(Builder $query, ?string $type): Builder
+    {
+        if (!in_array($type, ['cash', 'transfer'], true)) {
+            return $query;
+        }
+
+        $matchType = fn (Builder $q) => $type === 'cash'
+            ? $q->where('type', 'cash')
+            : $q->where('type', '!=', 'cash');
+
+        return $query->where(function (Builder $q) use ($matchType) {
+            $q->whereHas('payments.paymentMethod', $matchType)
+                ->orWhere(function (Builder $q2) use ($matchType) {
+                    $q2->doesntHave('payments')->whereHas('paymentMethod', $matchType);
+                });
+        });
+    }
 
     /** Sisa utang nota ini (total − sudah dibayar), tidak negatif. */
     public function remainingDue(): float

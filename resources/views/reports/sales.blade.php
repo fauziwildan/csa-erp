@@ -29,6 +29,15 @@
                 <input type="date" name="date_to" value="{{ request('date_to') }}"
                     class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
             </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Metode Bayar</label>
+                <select name="metode"
+                    class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">Semua Metode</option>
+                    <option value="cash" {{ request('metode') == 'cash' ? 'selected' : '' }}>Tunai</option>
+                    <option value="transfer" {{ request('metode') == 'transfer' ? 'selected' : '' }}>Transfer/Non-Tunai</option>
+                </select>
+            </div>
             <button type="submit" class="bg-indigo-600 text-white text-sm px-4 py-2 rounded-lg self-end">Filter</button>
             <a href="{{ route('reports.sales') }}"
                 class="bg-gray-100 text-gray-600 text-sm px-4 py-2 rounded-lg self-end">Reset</a>

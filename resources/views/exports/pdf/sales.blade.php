@@ -92,7 +92,7 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 10px; color: #111; paddi
                         <tr>
                             <td style="padding:2px 4px; border:none; font-size:8px">{{ $item->variant?->product?->name ?? 'Produk Terhapus' }}</td>
                             <td style="padding:2px 4px; border:none; font-size:7px; color:#666">
-                                {{ $item->variant??->sku ?? '-' }} 
+                                {{ $item->variant?->sku ?? '-' }}
                                 ({{ $item->variant?->color?->name ?? '-' }} / {{ $item->variant?->size?->name ?? '-' }})
                             </td>
                             <td style="padding:2px 4px; border:none; font-size:8px; text-align:center">{{ $item->qty }}</td>

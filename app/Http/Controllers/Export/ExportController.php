@@ -46,7 +46,8 @@ class ExportController extends Controller
         ])
             ->when($request->store_id, fn($q) => $q->where('store_id', $request->store_id))
             ->when($request->date_from, fn($q) => $q->whereDate('created_at', '>=', $request->date_from))
-            ->when($request->date_to, fn($q) => $q->whereDate('created_at', '<=', $request->date_to));
+            ->when($request->date_to, fn($q) => $q->whereDate('created_at', '<=', $request->date_to))
+            ->filterPaymentType($request->metode);
 
         if (!$isGlobal) {
             $storeIds = $user->stores()->pluck('stores.id')->toArray();
@@ -72,7 +73,7 @@ class ExportController extends Controller
     {
         $this->authorize('export report');
 
-        $export = new SalesExport($request->store_id, $request->date_from, $request->date_to);
+        $export = new SalesExport($request->store_id, $request->date_from, $request->date_to, $request->metode);
         $filename = $filename ?? ('laporan-penjualan-' . now()->format('Y-m-d_H-i-s') . '.xlsx');
 
         return $this->downloadExcelSecure($export, $filename);
@@ -94,7 +95,8 @@ class ExportController extends Controller
         ])
             ->when($request->store_id, fn($q) => $q->where('store_id', $request->store_id))
             ->when($request->date_from, fn($q) => $q->whereDate('created_at', '>=', $request->date_from))
-            ->when($request->date_to, fn($q) => $q->whereDate('created_at', '<=', $request->date_to));
+            ->when($request->date_to, fn($q) => $q->whereDate('created_at', '<=', $request->date_to))
+            ->filterPaymentType($request->metode);
 
         if (!$isGlobal) {
             $storeIds = $user->stores()->pluck('stores.id')->toArray();

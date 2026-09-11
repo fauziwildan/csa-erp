@@ -31,6 +31,7 @@ class ReportController extends Controller
             ->when($r->store_id,  fn($q) => $q->where('store_id', $r->store_id))
             ->when($r->date_from, fn($q) => $q->whereDate('created_at', '>=', $r->date_from))
             ->when($r->date_to,   fn($q) => $q->whereDate('created_at', '<=', $r->date_to))
+            ->filterPaymentType($r->metode)
             ->orderBy('created_at', 'desc');
 
         if (!$user->hasAnyRole(['superadmin', 'owner', 'finance'])) {

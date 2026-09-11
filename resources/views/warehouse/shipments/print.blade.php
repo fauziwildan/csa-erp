@@ -14,10 +14,9 @@
         .meta-block label { font-size: 10px; text-transform: uppercase; color: #666; letter-spacing: 0.5px; }
         .meta-block p { font-weight: 600; margin-top: 2px; }
         table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-        th { background: #e0e7ff; text-align: left; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-        td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; }
-        .text-right { text-align: right; }
-        .text-center { text-align: center; }
+        th, td { border: 1px solid #d1d5db; font-size: 11px; text-align: center; vertical-align: middle; }
+        th { background: #e0e7ff; padding: 8px 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+        td { padding: 7px 10px; }
         tfoot td { font-weight: bold; background: #f9fafb; border-top: 2px solid #333; }
         .qr-section { display: flex; justify-content: flex-end; margin-top: 20px; }
         .signatures { display: flex; justify-content: space-between; margin-top: 40px; }
@@ -85,29 +84,29 @@
                 <th>Produk</th>
                 <th>Warna</th>
                 <th>Ukuran</th>
-                <th class="text-right">Qty Kirim</th>
-                <th class="text-right">Qty Terima</th>
+                <th>Qty Kirim</th>
+                <th>Qty Terima</th>
             </tr>
         </thead>
         <tbody>
             @foreach($shipment->items as $i => $item)
             @php $v = $item->variant; @endphp
             <tr>
-                <td class="text-center" style="color:#999">{{ $i+1 }}</td>
-                <td style="font-family:monospace;font-size:11px">{{ $v?->sku }}</td>
+                <td style="color:#999">{{ $i+1 }}</td>
+                <td style="font-family:monospace">{{ $v?->sku }}</td>
                 <td>{{ $v?->product?->name }}</td>
                 <td>{{ $v?->color?->name }}</td>
                 <td>{{ $v?->size?->name }}</td>
-                <td class="text-right" style="font-weight:600">{{ $item->qty_sent }}</td>
-                <td class="text-right" style="color:#666">{{ $item->qty_received ?: '____' }}</td>
+                <td style="font-weight:600">{{ $item->qty_sent }}</td>
+                <td style="color:#666">{{ $item->qty_received ?: '____' }}</td>
             </tr>
             @endforeach
         </tbody>
         <tfoot>
             <tr>
-                <td colspan="5" class="text-right">TOTAL</td>
-                <td class="text-right">{{ $shipment->totalQtySent() }}</td>
-                <td class="text-right">{{ $shipment->totalQtyReceived() ?: '____' }}</td>
+                <td colspan="5">TOTAL</td>
+                <td>{{ $shipment->totalQtySent() }}</td>
+                <td>{{ $shipment->totalQtyReceived() ?: '____' }}</td>
             </tr>
         </tfoot>
     </table>

@@ -43,7 +43,7 @@ class CatalogController extends Controller
         $user = Auth::user();
 
         $productVariant->load([
-            'product.brand', 'product.category', 'product.images',
+            'product.brand', 'product.category', 'product.grammage', 'product.images',
             'product.variants.color', 'product.variants.size', 'color', 'size',
             'product.variants.stocks' => Product::roleStockConstraint($user),
         ]);

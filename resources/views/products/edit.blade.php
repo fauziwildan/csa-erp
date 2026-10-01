@@ -15,13 +15,13 @@
             <span class="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-1 rounded">{{ $product->model_code }}</span>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Brand <span class="text-red-500">*</span></label>
                 <select name="brand_id" required
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     @foreach($brands as $b)
-                    <option value="{{ $b->id }}" {{ $product->brand_id == $b->id ? 'selected' : '' }}>{{ $b->name }} ({{ $b->code }})</option>
+                    <option value="{{ $b->id }}" {{ old('brand_id', $product->brand_id) == $b->id ? 'selected' : '' }}>{{ $b->name }} ({{ $b->code }})</option>
                     @endforeach
                 </select>
             </div>
@@ -30,10 +30,10 @@
                 <select name="category_id" required
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     @foreach($categories as $cat)
-                    <option value="{{ $cat->id }}" {{ $product->category_id == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    <option value="{{ $cat->id }}" {{ old('category_id', $product->category_id) == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                     @if($cat->children->count())
                         @foreach($cat->children as $sub)
-                        <option value="{{ $sub->id }}" {{ $product->category_id == $sub->id ? 'selected' : '' }}>&nbsp;&nbsp;↳ {{ $sub->name }}</option>
+                        <option value="{{ $sub->id }}" {{ old('category_id', $product->category_id) == $sub->id ? 'selected' : '' }}>&nbsp;&nbsp;↳ {{ $sub->name }}</option>
                         @endforeach
                     @endif
                     @endforeach
@@ -44,7 +44,19 @@
                 <select name="product_type_id" required
                     class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                     @foreach($productTypes as $pt)
-                    <option value="{{ $pt->id }}" {{ $product->product_type_id == $pt->id ? 'selected' : '' }}>{{ $pt->name }}</option>
+                    <option value="{{ $pt->id }}" {{ old('product_type_id', $product->product_type_id) == $pt->id ? 'selected' : '' }}>{{ $pt->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Gramasi <span class="text-gray-400 font-normal">(Opsional)</span></label>
+                <select name="grammage_id"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <option value="">-- Tanpa Gramasi --</option>
+                    @foreach($grammages as $g)
+                    <option value="{{ $g->id }}" {{ old('grammage_id', $product->grammage_id) == $g->id ? 'selected' : '' }}>
+                        {{ $g->name }}{{ $g->value ? ' (' . $g->value . ')' : '' }}
+                    </option>
                     @endforeach
                 </select>
             </div>

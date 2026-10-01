@@ -11,7 +11,7 @@
     <div class="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
         <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Informasi Produk</h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Brand <span class="text-red-500">*</span></label>
                 <select name="brand_id" required
@@ -51,6 +51,20 @@
                     @endforeach
                 </select>
                 @error('product_type_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Gramasi <span class="text-gray-400 font-normal">(Opsional)</span></label>
+                <select name="grammage_id"
+                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 @error('grammage_id') border-red-500 @enderror">
+                    <option value="">-- Tanpa Gramasi --</option>
+                    @foreach($grammages as $g)
+                    <option value="{{ $g->id }}" {{ old('grammage_id') == $g->id ? 'selected' : '' }}>
+                        {{ $g->name }}{{ $g->value ? ' (' . $g->value . ')' : '' }}
+                    </option>
+                    @endforeach
+                </select>
+                @error('grammage_id')<p class="text-red-500 text-xs mt-1">{{ $message }}</p>@enderror
             </div>
         </div>
 

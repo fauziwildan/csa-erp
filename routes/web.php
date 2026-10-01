@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Master\BrandController;
 use App\Http\Controllers\Master\CategoryController;
 use App\Http\Controllers\Master\ColorController;
+use App\Http\Controllers\Master\GrammageController;
 use App\Http\Controllers\Master\PaymentMethodController;
 use App\Http\Controllers\Master\ProductTypeController;
 use App\Http\Controllers\Master\ReturnReasonController;
@@ -73,6 +74,9 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::resource('colors', ColorController::class)->except(['show']);
         Route::post('sizes/reorder', [SizeController::class, 'reorder'])->name('sizes.reorder');
         Route::resource('sizes', SizeController::class)->except(['show']);
+        Route::post('grammages/reorder', [GrammageController::class, 'reorder'])->name('grammages.reorder');
+        Route::patch('grammages/{grammage}/toggle', [GrammageController::class, 'toggle'])->name('grammages.toggle');
+        Route::resource('grammages', GrammageController::class)->except(['show']);
         Route::resource('warehouses', WarehouseController::class)->except(['show']);
         Route::resource('stores', StoreController::class)->except(['show']);
         Route::resource('payment-methods', PaymentMethodController::class)->except(['show']);

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Color;
+use App\Models\Grammage;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Models\Size;
@@ -70,13 +71,14 @@ class ProductController extends Controller
     {
         $this->authorize('create product');
 
-        $brands      = Brand::active()->orderBy('name')->get();
-        $categories  = Category::with('children')->whereNull('parent_id')->orderBy('name')->get();
+        $brands       = Brand::active()->orderBy('name')->get();
+        $categories   = Category::with('children')->whereNull('parent_id')->orderBy('name')->get();
         $productTypes = ProductType::orderBy('name')->get();
-        $colors      = Color::orderBy('name')->get();
-        $sizes       = Size::orderBy('sort_order')->get();
+        $grammages    = Grammage::active()->orderBy('sort_order')->orderBy('name')->get();
+        $colors       = Color::orderBy('name')->get();
+        $sizes        = Size::orderBy('sort_order')->get();
 
-        return view('products.create', compact('brands', 'categories', 'productTypes', 'colors', 'sizes'));
+        return view('products.create', compact('brands', 'categories', 'productTypes', 'grammages', 'colors', 'sizes'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -87,6 +89,7 @@ class ProductController extends Controller
             'brand_id'        => 'required|exists:brands,id',
             'category_id'     => 'required|exists:categories,id',
             'product_type_id' => 'required|exists:product_types,id',
+            'grammage_id'     => 'nullable|exists:grammages,id',
             'name'            => 'required|string|max:200',
             'description'     => 'nullable|string',
             'base_price'      => 'required|numeric|min:0',
@@ -107,6 +110,7 @@ class ProductController extends Controller
                 'brand_id'        => $data['brand_id'],
                 'category_id'     => $data['category_id'],
                 'product_type_id' => $data['product_type_id'],
+                'grammage_id'     => $data['grammage_id'] ?? null,
                 'name'            => $data['name'],
                 'model_code'      => $modelCode,
                 'description'     => $data['description'] ?? null,
@@ -143,7 +147,7 @@ class ProductController extends Controller
         $user = Auth::user();
 
         $product->load([
-            'brand', 'category', 'productType', 'images',
+            'brand', 'category', 'productType', 'grammage', 'images',
             'variants.color', 'variants.size',
             // Filter stok berdasarkan Role User
             'variants.stocks' => Product::roleStockConstraint($user),
@@ -158,14 +162,17 @@ class ProductController extends Controller
     public function edit(Product $product): View
     {
         $this->authorize('update product');
-        $product->load(['images']);
+        $product->load(['images', 'grammage']);
 
         $brands       = Brand::active()->orderBy('name')->get();
         $categories   = Category::with('children')->whereNull('parent_id')->orderBy('name')->get();
         $productTypes = ProductType::orderBy('name')->get();
+        $grammages    = Grammage::where('is_active', true)
+                            ->orWhere('id', $product->grammage_id)
+                            ->orderBy('sort_order')->orderBy('name')->get();
         $colors       = Color::orderBy('name')->get();
 
-        return view('products.edit', compact('product', 'brands', 'categories', 'productTypes', 'colors'));
+        return view('products.edit', compact('product', 'brands', 'categories', 'productTypes', 'grammages', 'colors'));
     }
 
     public function update(Request $request, Product $product): RedirectResponse
@@ -176,6 +183,7 @@ class ProductController extends Controller
             'brand_id'        => 'required|exists:brands,id',
             'category_id'     => 'required|exists:categories,id',
             'product_type_id' => 'required|exists:product_types,id',
+            'grammage_id'     => 'nullable|exists:grammages,id',
             'name'            => 'required|string|max:200',
             'description'     => 'nullable|string',
             'base_price'      => 'required|numeric|min:0',
@@ -195,6 +203,7 @@ class ProductController extends Controller
                 'brand_id'        => $data['brand_id'],
                 'category_id'     => $data['category_id'],
                 'product_type_id' => $data['product_type_id'],
+                'grammage_id'     => $data['grammage_id'] ?? null,
                 'name'            => $data['name'],
                 'description'     => $data['description'] ?? null,
                 'base_price'      => $data['base_price'],

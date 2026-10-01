@@ -12,7 +12,7 @@ class Product extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'brand_id', 'category_id', 'product_type_id',
+        'brand_id', 'category_id', 'product_type_id', 'grammage_id',
         'name', 'model_code', 'description',
         'base_price', 'sell_price', 'retail_price', 'is_active', 'created_by','reward_store',
         'reward_owner',
@@ -28,6 +28,7 @@ class Product extends Model
     public function brand(): BelongsTo      { return $this->belongsTo(Brand::class); }
     public function category(): BelongsTo   { return $this->belongsTo(Category::class); }
     public function productType(): BelongsTo { return $this->belongsTo(ProductType::class); }
+    public function grammage(): BelongsTo   { return $this->belongsTo(Grammage::class); }
     public function creator(): BelongsTo    { return $this->belongsTo(User::class, 'created_by'); }
     public function variants(): HasMany     { return $this->hasMany(ProductVariant::class); }
     protected static function booted()

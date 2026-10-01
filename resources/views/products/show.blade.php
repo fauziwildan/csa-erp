@@ -33,7 +33,17 @@
                             @endif
                         </div>
                         <h1 class="text-xl font-bold text-gray-900">{{ $product->name }}</h1>
-                        <p class="text-sm text-gray-500 mt-0.5">{{ $product->category?->name ?? '(Kategori dihapus)' }} · {{ $product->productType?->name ?? '(Tipe dihapus)' }}</p>
+                        <p class="text-sm text-gray-500 mt-0.5 flex flex-wrap items-center gap-1.5">
+                            <span>{{ $product->category?->name ?? '(Kategori dihapus)' }}</span>
+                            <span>·</span>
+                            <span>{{ $product->productType?->name ?? '(Tipe dihapus)' }}</span>
+                            @if($product->grammage)
+                            <span>·</span>
+                            <span class="inline-flex items-center gap-1 bg-amber-50 text-amber-800 text-xs px-2 py-0.5 rounded-md font-medium border border-amber-200">
+                                Gramasi: {{ $product->grammage->name }}{{ $product->grammage->value ? ' (' . $product->grammage->value . ')' : '' }}
+                            </span>
+                            @endif
+                        </p>
                     </div>
 
                     <div class="flex gap-2 shrink-0">

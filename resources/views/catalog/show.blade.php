@@ -70,6 +70,12 @@
                         <p class="text-xs text-gray-400">Kategori</p>
                         <p class="font-medium text-gray-700">{{ $product->category?->name ?? '—' }}</p>
                     </div>
+                    @if($product->grammage)
+                    <div>
+                        <p class="text-xs text-gray-400">Gramasi</p>
+                        <p class="font-medium text-gray-700">{{ $product->grammage->name }}{{ $product->grammage->value ? ' (' . $product->grammage->value . ')' : '' }}</p>
+                    </div>
+                    @endif
                 </div>
 
                 {{-- Stock info --}}

@@ -187,6 +187,7 @@
                         ['route' => 'master.product-types.index',  'label' => 'Jenis Produk'],
                         ['route' => 'master.colors.index',         'label' => 'Warna'],
                         ['route' => 'master.sizes.index',          'label' => 'Ukuran'],
+                        ['route' => 'master.grammages.index',      'label' => 'Gramasi'],
                         ['route' => 'master.warehouses.index',     'label' => 'Gudang'],
                         ['route' => 'master.stores.index',         'label' => 'Toko'],
                         ['route' => 'master.payment-methods.index','label' => 'Metode Bayar'],

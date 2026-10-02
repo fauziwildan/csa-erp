@@ -73,6 +73,7 @@ class Product extends Model
             ->when($request->brand_id, fn($q) => $q->where('brand_id', $request->brand_id))
             ->when($request->category_id, fn($q) => $q->where('category_id', $request->category_id))
             ->when($request->product_type_id, fn($q) => $q->where('product_type_id', $request->product_type_id))
+            ->when($request->grammage_id, fn($q) => $q->where('grammage_id', $request->grammage_id))
             ->when($request->search, function ($q) use ($request) {
                 $term = $request->search;
                 $q->where(function ($sub) use ($term) {

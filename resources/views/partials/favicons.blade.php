@@ -14,7 +14,6 @@
      interaksi pertama (klik/tap/tombol). Dilewati bila sudah berjalan sebagai
      PWA/home-screen (Android display:fullscreen, iOS standalone) yang memang
      sudah tanpa bar browser. --}}
-{{-- 
 <script>
 (function () {
     var isApp = (window.matchMedia && (
@@ -45,4 +44,3 @@
     });
 })();
 </script>
---}}

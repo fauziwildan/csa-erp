@@ -34,8 +34,17 @@ class POSController extends Controller
         $paymentMethods = \App\Models\PaymentMethod::where('is_active', true)->orderBy('sort_order')->get();
         $store = $session->store;
 
-        // TAMBAHKAN 'product.images' dan 'image' PADA QUERY DI BAWAH
-        $catalog = \App\Models\ProductVariant::with(['product.brand', 'color', 'size', 'product.images', 'image'])
+        // Eager load brand, category, productType, grammage, images
+        $catalog = \App\Models\ProductVariant::with([
+            'product.brand',
+            'product.category',
+            'product.productType',
+            'product.grammage',
+            'color',
+            'size',
+            'product.images',
+            'image'
+        ])
             ->where('is_active', true)
             ->whereHas('product', fn($q) => $q->where('is_active', true))
             ->get()
@@ -61,10 +70,20 @@ class POSController extends Controller
                     'retail_price'    => (float) ($v->product->retail_price ?? ($v->sellPrice() + 20000)),
                     'stock'           => $stock,
                     'image'           => $imageUrl,
+                    'brand_id'        => $v->product->brand_id,
+                    'category_id'     => $v->product->category_id,
+                    'product_type_id' => $v->product->product_type_id,
+                    'grammage_id'     => $v->product->grammage_id,
+                    'grammage_name'   => $v->product->grammage?->name,
                 ];
             });
 
-        return view('pos.index', compact('session', 'store', 'paymentMethods', 'catalog'));
+        $brands = \App\Models\Brand::active()->orderBy('name')->get(['id', 'name']);
+        $categories = \App\Models\Category::whereNull('parent_id')->with('children:id,parent_id,name')->orderBy('name')->get(['id', 'name']);
+        $productTypes = \App\Models\ProductType::orderBy('name')->get(['id', 'name']);
+        $grammages = \App\Models\Grammage::active()->orderBy('sort_order')->orderBy('name')->get(['id', 'name']);
+
+        return view('pos.index', compact('session', 'store', 'paymentMethods', 'catalog', 'brands', 'categories', 'productTypes', 'grammages'));
     }
 
     public function exportReport(Request $r)

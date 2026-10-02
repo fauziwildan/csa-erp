@@ -20,15 +20,18 @@
         ========================================== --}}
         <!-- flex-1 min-w-0 memastikan panel ini fleksibel tapi tidak akan pernah hilang -->
         <div id="catalogPanel" class="w-full md:flex-1 min-w-0 flex flex-col bg-transparent md:overflow-hidden md:h-full">
-            {{-- 1. Search Bar & Scanner --}}
-            <div class="shrink-0 mb-4">
-                <div class="relative group">
-                    <!-- <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                        <svg class="w-6 h-6 text-gray-400 group-focus-within:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                    </div> -->
+            {{-- 1. Search Bar & Scanner + Filter Button --}}
+            <div class="shrink-0 mb-4 flex items-center gap-2">
+                <div class="relative group flex-1">
+                    <!-- Scanner Icon inside input -->
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-indigo-600 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+                        </svg>
+                    </div>
                     <input type="text" id="searchInput" x-model="search" @keydown.enter.prevent="handleEnterScan()"
                         placeholder="Scan Barcode di sini, atau ketik nama/SKU produk..."
-                        class="w-full bg-white border border-gray-200 rounded-2xl pl-14 pr-6 py-4 text-base shadow-sm focus:ring-4 focus:ring-indigo-500/20 text-gray-800 placeholder-gray-400 font-medium transition-all">
+                        class="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-20 py-3.5 text-sm md:text-base shadow-sm focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 text-gray-800 placeholder-gray-400 font-medium transition-all">
 
                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center gap-1.5">
                         {{-- Tombol keyboard: paksa buka keyboard layar saat scanner terhubung --}}
@@ -46,6 +49,108 @@
                                     d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
+                    </div>
+                </div>
+
+                {{-- Filter Dropdown Button --}}
+                <div class="relative shrink-0" @click.away="showFilterMenu = false">
+                    <button type="button" @click="showFilterMenu = !showFilterMenu"
+                        class="flex items-center gap-2 px-4 py-3.5 rounded-2xl border text-sm font-semibold transition-all shadow-sm"
+                        :class="activeFilterCount > 0 ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300'">
+                        <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                        </svg>
+                        <span class="hidden sm:inline">Filter</span>
+                        <template x-if="activeFilterCount > 0">
+                            <span class="bg-white text-indigo-700 text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center -ml-0.5" x-text="activeFilterCount"></span>
+                        </template>
+                    </button>
+
+                    {{-- Dropdown Menu Popover --}}
+                    <div x-show="showFilterMenu" x-transition.origin.top.right
+                        class="absolute right-0 mt-2 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-200 p-4 z-50 space-y-3.5"
+                        style="display: none;">
+                        <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                            <h4 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                                Filter Katalog Produk
+                            </h4>
+                            <button type="button" @click="resetFilters()" x-show="activeFilterCount > 0"
+                                class="text-xs text-rose-600 hover:text-rose-700 font-semibold hover:underline">
+                                Reset Semua
+                            </button>
+                        </div>
+
+                        {{-- 1. Brand --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Brand</label>
+                            <select x-model="filterBrandId"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Semua Brand</option>
+                                @foreach($brands as $b)
+                                <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- 2. Kategori --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Kategori</label>
+                            <select x-model="filterCategoryId"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Semua Kategori</option>
+                                @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                    @if($cat->children && $cat->children->count())
+                                        @foreach($cat->children as $sub)
+                                        <option value="{{ $sub->id }}">&nbsp;&nbsp;↳ {{ $sub->name }}</option>
+                                        @endforeach
+                                    @endif
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- 3. Jenis Produk --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Jenis Produk</label>
+                            <select x-model="filterProductTypeId"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Semua Jenis</option>
+                                @foreach($productTypes as $pt)
+                                <option value="{{ $pt->id }}">{{ $pt->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- 4. Gramasi --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Gramasi</label>
+                            <select x-model="filterGrammageId"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">Semua Gramasi</option>
+                                @foreach($grammages as $g)
+                                <option value="{{ $g->id }}">{{ $g->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- 5. Urutan Stok --}}
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1">Jumlah Stok</label>
+                            <select x-model="stockSortDir"
+                                class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs text-gray-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="desc">Stok Terbanyak → Tersedikit</option>
+                                <option value="asc">Stok Tersedikit → Terbanyak</option>
+                            </select>
+                        </div>
+
+                        <div class="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+                            <span>Hasil: <strong class="text-indigo-600 font-bold" x-text="filteredCatalog.length"></strong> produk</span>
+                            <button type="button" @click="showFilterMenu = false"
+                                class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors">
+                                Tutup
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -86,6 +191,12 @@
                                     class="absolute bottom-2 left-2 bg-black/60 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-md">
                                     Sisa: <span x-text="p.stock"></span>
                                 </div>
+
+                                <!-- Badge Gramasi (Kanan Bawah Gambar) -->
+                                <div x-show="p.grammage_name"
+                                    class="absolute bottom-2 right-2 bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow">
+                                    <span x-text="p.grammage_name"></span>
+                                </div>
                             </div>
 
                             <!-- Info Produk -->
@@ -110,6 +221,10 @@
                                 d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
                         </svg>
                         <p class="text-base font-medium text-gray-500">Produk atau SKU tidak ditemukan.</p>
+                        <button type="button" @click="resetFilters(); search = ''"
+                            class="mt-3 text-xs bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-semibold px-4 py-2 rounded-xl transition-colors">
+                            Reset Filter & Pencarian
+                        </button>
                     </div>
 
                 </div>
@@ -772,6 +887,30 @@
                 dueDate: '',
                 splitMode: false,
                 splitPayments: [{ payment_method_id: '', amount: '' }],
+                showFilterMenu: false,
+                filterBrandId: '',
+                filterCategoryId: '',
+                filterProductTypeId: '',
+                filterGrammageId: '',
+                stockSortDir: 'desc', // 'desc' | 'asc'
+
+                get activeFilterCount() {
+                    let count = 0;
+                    if (this.filterBrandId) count++;
+                    if (this.filterCategoryId) count++;
+                    if (this.filterProductTypeId) count++;
+                    if (this.filterGrammageId) count++;
+                    if (this.stockSortDir !== 'desc') count++;
+                    return count;
+                },
+
+                resetFilters() {
+                    this.filterBrandId = '';
+                    this.filterCategoryId = '';
+                    this.filterProductTypeId = '';
+                    this.filterGrammageId = '';
+                    this.stockSortDir = 'desc';
+                },
 
                 init() {
                     // Watch total: Jika total berubah dan metode bukan Cash, update amountPaid
@@ -837,17 +976,43 @@
                 },
 
                 get filteredCatalog() {
-                    let list;
-                    if (this.search.trim() === '') {
-                        list = this.catalog;
-                    } else {
-                        let q = this.search.toLowerCase();
-                        list = this.catalog.filter(p =>
-                            p.sku.toLowerCase().includes(q) ||
-                            p.name.toLowerCase().includes(q)
+                    let list = this.catalog;
+
+                    // 1. Filter Search (SKU atau Nama)
+                    if (this.search && this.search.trim() !== '') {
+                        let q = this.search.toLowerCase().trim();
+                        list = list.filter(p =>
+                            (p.sku && p.sku.toLowerCase().includes(q)) ||
+                            (p.name && p.name.toLowerCase().includes(q))
                         );
                     }
-                    return [...list].sort((a, b) => b.stock - a.stock);
+
+                    // 2. Filter Brand
+                    if (this.filterBrandId) {
+                        list = list.filter(p => String(p.brand_id) === String(this.filterBrandId));
+                    }
+
+                    // 3. Filter Kategori
+                    if (this.filterCategoryId) {
+                        list = list.filter(p => String(p.category_id) === String(this.filterCategoryId));
+                    }
+
+                    // 4. Filter Jenis Produk
+                    if (this.filterProductTypeId) {
+                        list = list.filter(p => String(p.product_type_id) === String(this.filterProductTypeId));
+                    }
+
+                    // 5. Filter Gramasi (hanya gramasi yang dipilih yang keluar)
+                    if (this.filterGrammageId) {
+                        list = list.filter(p => String(p.grammage_id) === String(this.filterGrammageId));
+                    }
+
+                    // 6. Urutan Stok: Terbanyak (desc) atau Tersedikit (asc)
+                    return [...list].sort((a, b) => {
+                        let stockA = Number(a.stock) || 0;
+                        let stockB = Number(b.stock) || 0;
+                        return this.stockSortDir === 'asc' ? (stockA - stockB) : (stockB - stockA);
+                    });
                 },
 
                 getCartQty(variantId) {

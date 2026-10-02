@@ -32,7 +32,7 @@ class ProductController extends Controller
             $sortDir = 'desc';
         }
 
-        $query = Product::with(['brand', 'category', 'productType', 'images'])
+        $query = Product::with(['brand', 'category', 'productType', 'grammage', 'images'])
             ->listingFilters($request)
             ->when($request->status !== null && $request->status !== '', fn($q) =>
                 $q->where('is_active', $request->status));
@@ -49,8 +49,9 @@ class ProductController extends Controller
         $brands      = Brand::active()->orderBy('name')->get();
         $categories  = Category::whereNull('parent_id')->with('children')->orderBy('name')->get();
         $productTypes = ProductType::orderBy('name')->get();
+        $grammages   = Grammage::active()->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('products.index', compact('products', 'brands', 'categories', 'productTypes'));
+        return view('products.index', compact('products', 'brands', 'categories', 'productTypes', 'grammages'));
     }
 
     public function catalogExport(Request $request): View

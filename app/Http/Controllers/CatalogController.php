@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Brand;
 use App\Models\Category;
+use App\Models\Grammage;
 use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class CatalogController extends Controller
 
         $stockConstraint = Product::roleStockConstraint($user);
 
-        $query = Product::with(['brand', 'category', 'images', 'variants.stocks' => $stockConstraint])
+        $query = Product::with(['brand', 'category', 'grammage', 'images', 'variants.stocks' => $stockConstraint])
             ->where('is_active', true)
             ->listingFilters($request);
 
@@ -34,8 +35,9 @@ class CatalogController extends Controller
         $products   = $query->paginate(24)->withQueryString();
         $brands     = Brand::active()->orderBy('name')->get();
         $categories = Category::whereNull('parent_id')->orderBy('name')->get();
+        $grammages  = Grammage::active()->orderBy('sort_order')->orderBy('name')->get();
 
-        return view('catalog.index', compact('products', 'brands', 'categories'));
+        return view('catalog.index', compact('products', 'brands', 'categories', 'grammages'));
     }
 
     public function show(ProductVariant $productVariant)

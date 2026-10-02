@@ -41,6 +41,14 @@
                 @endforeach
             </select>
 
+            <select name="grammage_id" onchange="document.getElementById('filter-form').submit()"
+                class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <option value="">Semua Gramasi</option>
+                @foreach($grammages as $g)
+                <option value="{{ $g->id }}" {{ request('grammage_id') == $g->id ? 'selected' : '' }}>{{ $g->name }}</option>
+                @endforeach
+            </select>
+
             <select name="status" onchange="document.getElementById('filter-form').submit()"
                 class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 <option value="">Semua Status</option>
@@ -140,9 +148,16 @@
                     <span class="text-xs font-medium text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
                         {{ $product->brand->code }}
                     </span>
-                    @if(!$product->is_active)
-                    <span class="text-xs text-red-500 bg-red-50 px-1.5 py-0.5 rounded">Nonaktif</span>
-                    @endif
+                    <div class="flex items-center gap-1">
+                        @if($product->grammage)
+                        <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded" title="Gramasi">
+                            {{ $product->grammage->name }}
+                        </span>
+                        @endif
+                        @if(!$product->is_active)
+                        <span class="text-xs text-red-500 bg-red-50 px-1.5 py-0.5 rounded">Nonaktif</span>
+                        @endif
+                    </div>
                 </div>
                 <p class="text-xs font-semibold text-gray-800 leading-tight mt-1 line-clamp-2">{{ $product->name }}</p>
                 <p class="text-xs text-gray-400 mt-0.5 font-mono">{{ $product->model_code }}</p>
